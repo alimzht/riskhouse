@@ -683,7 +683,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-07",
    "buyer_name": "Městská část Praha 10",
    "supplier": "EPRE Vršovická s.r.o.",
-   "value_czk": 1117396694.0,
+   "value_czk": "1117396694.00",
    "flags": "R1",
    "example_for": "R1"
   },
@@ -693,7 +693,7 @@ window.RISKHOUSE = {
    "signed_date": "2009-12-10",
    "buyer_name": "Armádní Servisní, příspěvková organizace",
    "supplier": "Teplárny Brno Distribuce, a.s.",
-   "value_czk": 48193700.0,
+   "value_czk": "48193700.00",
    "flags": "R1",
    "example_for": "R1"
   },
@@ -703,7 +703,7 @@ window.RISKHOUSE = {
    "signed_date": "2015-05-15",
    "buyer_name": "Vojenský technický ústav, s.p.",
    "supplier": "TATRA DEFENCE SYSTEMS s.r.o.",
-   "value_czk": 36000000.0,
+   "value_czk": "36000000.00",
    "flags": "R1",
    "example_for": "R1"
   },
@@ -713,7 +713,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-09-25",
    "buyer_name": "Povodí Moravy, s.p.",
    "supplier": "RiverForge s.r.o.",
-   "value_czk": 25555555.0,
+   "value_czk": "25555555.00",
    "flags": "R1",
    "example_for": "R1"
   },
@@ -723,7 +723,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-09-03",
    "buyer_name": "Město Žatec",
    "supplier": "Nemocnice Žatec, z.ú. v likvidaci",
-   "value_czk": 45119860.59,
+   "value_czk": "45119860.59",
    "flags": "R2",
    "example_for": "R2"
   },
@@ -733,7 +733,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-27",
    "buyer_name": "Střední odborné učiliště včelařské – Včelařské vzdělávací centrum, státní příspěvková organizace",
    "supplier": "Střední odborné učiliště včelařské - Včelařské vzdělávací centrum, o.p.s. v likvidaci",
-   "value_czk": 16994259.06,
+   "value_czk": "16994259.06",
    "flags": "R2",
    "example_for": "R2"
   },
@@ -743,7 +743,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-22",
    "buyer_name": "Hlavní město Praha",
    "supplier": "Státní statek hl.m. Prahy \"v likvidaci\"",
-   "value_czk": 7800000.0,
+   "value_czk": "7800000.00",
    "flags": "R2",
    "example_for": "R2"
   },
@@ -753,7 +753,7 @@ window.RISKHOUSE = {
    "signed_date": "2021-09-14",
    "buyer_name": "Město Horažďovice",
    "supplier": "SeneCura Holding s.r.o. v likvidaci",
-   "value_czk": 7574000.0,
+   "value_czk": "7574000.00",
    "flags": "R2",
    "example_for": "R2"
   },
@@ -763,7 +763,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-30",
    "buyer_name": "Dostupné bydlení Kamenný vrch II, bytové družstvo",
    "supplier": "Městská část Brno-Nový Lískovec",
-   "value_czk": 2099354189.0,
+   "value_czk": "2099354189.00",
    "flags": "R3",
    "example_for": "R3"
   },
@@ -773,7 +773,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-13",
    "buyer_name": "Ředitelství silnic a dálnic s. p.",
    "supplier": "Metrostav DS a.s.",
-   "value_czk": 870481435.74,
+   "value_czk": "870481435.74",
    "flags": "R3",
    "example_for": "R3"
   },
@@ -783,7 +783,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-15",
    "buyer_name": "Ředitelství silnic a dálnic s. p.",
    "supplier": "Duna Aszfalt Zártkörüen Müködö Részvénytársaság",
-   "value_czk": 817880911.44,
+   "value_czk": "817880911.44",
    "flags": "R3",
    "example_for": "R3"
   },
@@ -793,7 +793,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-25",
    "buyer_name": "Povodí Labe, státní podnik",
    "supplier": "Budimex S.A.",
-   "value_czk": 587846850.48,
+   "value_czk": "587846850.48",
    "flags": "R3",
    "example_for": "R3"
   },
@@ -803,7 +803,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-06-15",
    "buyer_name": "České vysoké učení technické v Praze",
    "supplier": "Blindspot Solutions s.r.o.",
-   "value_czk": 508052228.0,
+   "value_czk": "508052228.00",
    "flags": "R4",
    "example_for": "R4"
   },
@@ -813,7 +813,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-01",
    "buyer_name": "Digitální a informační agentura",
    "supplier": "ADASTRA, s.r.o.",
-   "value_czk": 310000000.0,
+   "value_czk": "310000000.00",
    "flags": "R4",
    "example_for": "R4"
   },
@@ -823,7 +823,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-19",
    "buyer_name": "Město Jindřichův Hradec",
    "supplier": "COMBIN BANSKÁ ŠTIAVNICA, s. r. o.",
-   "value_czk": 236509805.75,
+   "value_czk": "236509805.75",
    "flags": "R4",
    "example_for": "R4"
   },
@@ -833,7 +833,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-19",
    "buyer_name": "Město Jindřichův Hradec",
    "supplier": "STANTER, a. s.",
-   "value_czk": 236509805.75,
+   "value_czk": "236509805.75",
    "flags": "R4",
    "example_for": "R4"
   },
@@ -843,7 +843,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-03",
    "buyer_name": "Technologie hlavního města Prahy, a.s.",
    "supplier": "HLAVNÍ MĚSTO PRAHA",
-   "value_czk": 5997189.63,
+   "value_czk": "5997189.63",
    "flags": "R5",
    "example_for": "R5"
   },
@@ -853,7 +853,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-24",
    "buyer_name": "MČ Praha-Dubeč",
    "supplier": "MV BAU, s.r.o.",
-   "value_czk": 5996675.36,
+   "value_czk": "5996675.36",
    "flags": "R5",
    "example_for": "R5"
   },
@@ -863,7 +863,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-07",
    "buyer_name": "Správa železnic, státní organizace",
    "supplier": "MS Ruzyňská, s.r.o.",
-   "value_czk": 5996280.99,
+   "value_czk": "5996280.99",
    "flags": "R5",
    "example_for": "R5"
   },
@@ -873,7 +873,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-30",
    "buyer_name": "Lesy České republiky, s.p.",
    "supplier": "GRACCULUS s.r.o.",
-   "value_czk": 5994562.49,
+   "value_czk": "5994562.49",
    "flags": "R5 R6",
    "example_for": "R5"
   },
@@ -883,7 +883,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-07-30",
    "buyer_name": "Lesy České republiky, s.p.",
    "supplier": "GRACCULUS s.r.o.",
-   "value_czk": 5994562.49,
+   "value_czk": "5994562.49",
    "flags": "R5 R6",
    "example_for": "R6"
   },
@@ -893,7 +893,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-08-27",
    "buyer_name": "Teplárny Brno, a.s.",
    "supplier": "AVOS VYŠKOV měřící a regulační technika, s.r.o.",
-   "value_czk": 5990000.0,
+   "value_czk": "5990000.00",
    "flags": "R5 R6",
    "example_for": "R6"
   },
@@ -903,7 +903,7 @@ window.RISKHOUSE = {
    "signed_date": "2026-09-16",
    "buyer_name": "Národní památkový ústav",
    "supplier": "COMPRIMA s.r.o.",
-   "value_czk": 5957567.69,
+   "value_czk": "5957567.69",
    "flags": "R5 R6",
    "example_for": "R6"
   },
@@ -912,8 +912,8 @@ window.RISKHOUSE = {
    "url": "https://smlouvy.gov.cz/smlouva/39571625",
    "signed_date": "2025-04-22",
    "buyer_name": "Ředitelství silnic a dálnic s. p.",
-   "supplier": "INFRAPROJEKT s.r.o.",
-   "value_czk": 5834000.0,
+   "supplier": "Mott MacDonald CZ, spol. s r.o.",
+   "value_czk": "5834000.00",
    "flags": "R5 R6",
    "example_for": "R6"
   }

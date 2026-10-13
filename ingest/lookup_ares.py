@@ -34,6 +34,18 @@ RETRY_ATTEMPTS = 5             # back-off grows 5 s, 10 s, 15 s ...
 PROGRESS_EVERY_BATCHES = 20    # one progress line per 2 000 IČOs
 
 
+# The fields the pipeline reads (models/procurement/silver/stg_ares_companies.sql). ARES answers with the full
+# record (addresses, registrations, activity codes ...): landing only these keeps the file ~20x smaller.
+KEPT_FIELDS = ["ico", "obchodniJmeno", "datumVzniku", "datumZaniku", "pravniForma", "sidlo", "czNace"]
+
+
+def slim(subject: dict) -> dict:
+    kept = {field: subject[field] for field in KEPT_FIELDS if field in subject}
+    if "sidlo" in kept:
+        kept["sidlo"] = {"nazevKraje": kept["sidlo"].get("nazevKraje")}
+    return kept
+
+
 def normalise_ico(ico):
     """8-digit IČO, or None when the value cannot be one ('CZ27082440', too long, empty)."""
     digits = re.sub(r"\s", "", ico or "")
@@ -70,7 +82,7 @@ def lookup_batch(icos: list) -> dict:
             if response.status_code == 404:          # none of the batch exists
                 return {}
             response.raise_for_status()
-            return {subject["ico"]: subject for subject in response.json().get("ekonomickeSubjekty", [])}
+            return {subject["ico"]: slim(subject) for subject in response.json().get("ekonomickeSubjekty", [])}
         except requests.RequestException as error:
             print(f"  attempt {attempt} failed ({error})")
             time.sleep(5 * attempt)

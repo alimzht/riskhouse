@@ -59,12 +59,13 @@ fx as (
 valued as (
     select
         t.*,
-        -- T-V03 value in CZK excl. VAT: stated excl. VAT > incl. VAT / 1.21 (estimated) > foreign currency at ČNB rate
-        case
+        -- T-V03 value in CZK excl. VAT: stated excl. VAT > incl. VAT / 1.21 (estimated) > foreign currency at ČNB rate.
+        -- Money stays fixed-point: a float here made sums (R6) differ in the last digits from run to run.
+        cast(case
             when t.value_excl_vat is not null then t.value_excl_vat
             when t.value_incl_vat is not null then round(t.value_incl_vat / (1 + {{ var('vat_rate') }}), 2)
             when t.foreign_value  is not null then round(t.foreign_value * fx.czk_per_unit, 2)
-        end as value_czk,
+        end as decimal(18, 2)) as value_czk,
         case
             when t.value_excl_vat is not null then 'excl_vat'
             when t.value_incl_vat is not null then 'incl_vat_estimated'
