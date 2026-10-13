@@ -1,7 +1,7 @@
 # riskhouse
 
 Risk analytics on real public data: screening **Czech public contracts** for warning signs, and finding **who costs
-what** in a real motor insurance portfolio. One lakehouse-style pipeline (dbt, DuckDB, Databricks-ready SQL),
+what** in a real motor insurance portfolio. One lakehouse-style pipeline (dbt on DuckDB, verified on Databricks),
 tested end to end.
 
 ![riskhouse dashboard](docs/dashboard.png)
@@ -91,7 +91,11 @@ Raw data is never committed; the pipeline downloads it from the official open-da
 - **Development on DuckDB, production on Databricks.** Engine-specific SQL sits behind macros with a DuckDB and a
   Spark version ([macros/cross_engine.sql](macros/cross_engine.sql)); a landing notebook loads the files into Delta
   tables ([notebooks/01_land.py](notebooks/01_land.py)); `dbt build --target databricks` runs the same models.
-  Credentials only come from environment variables ([docs/databricks.md](docs/databricks.md)).
+  **Verified on Databricks (Free Edition, serverless):** all 41 dbt checks pass, and 16 key metrics (contracts flagged,
+  every rule count, total value to the haléř, motor claim cost) are identical to the local DuckDB build. Getting
+  there found three real cross-engine differences, now fixed: float vs. exact decimal division for VAT and exchange
+  rates, and accent stripping of Polish letters. Credentials only come from environment variables
+  ([docs/databricks.md](docs/databricks.md)).
 - **Security.** The XML parser refuses external entities and network access; the dashboard renders data as text
   only; no secrets in the repository.
 
