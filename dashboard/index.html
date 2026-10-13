@@ -3,129 +3,208 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>riskhouse · contract screening</title>
+<title>riskhouse: screening Czech public contracts</title>
+<meta name="description" content="Every contract in the Czech contract register, checked against the business register with six explainable rules. 4.8 % need a person.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Fira+Sans+Condensed:wght@400;500;600&display=swap&subset=latin-ext" rel="stylesheet">
 <style>
+  /* Tokens: a reviewer's case file. Cool registry paper, stamp-ink blue-black, a highlighter for what needs a look. */
   :root {
     color-scheme: light;
-    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
-    --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
-    --series-1: #2a78d6; --series-2: #eb6834;          /* categorical slots 1-2 */
-    --cool: #2a78d6; --warm: #e34948;                    /* diverging poles: below / above average */
+    --paper: #f2f4f3;         /* page */
+    --sheet: #fbfcfb;         /* chart surface */
+    --ink: #18233a;           /* stamp ink */
+    --ink-2: #4d5768;
+    --ink-3: #7a8291;         /* axis labels, notes */
+    --rule: #d3d8d6;
+    --grid: #e3e7e5;
+    --marker: #f3dd4e;        /* reviewer's highlighter */
+    --marker-alpha: .5;
+    --bar: #2a78d6;           /* validated categorical slot 1 */
+    --above: #e34948;         /* diverging: costs more than average */
+    --below: #2a78d6;         /*            costs less than average */
     --link: #1c5cab;
+    --focus: #1c5cab;
+    --text: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --figure: "Fira Sans Condensed", "Fira Sans", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
-      --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
-      --series-1: #3987e5; --series-2: #d95926; --cool: #3987e5; --warm: #e66767; --link: #86b6ef;
+      --paper: #11151d; --sheet: #171c26; --ink: #e7eaf0; --ink-2: #b9c0cc; --ink-3: #8c94a3;
+      --rule: #2b3240; --grid: #222936; --marker: #8f7d16; --marker-alpha: .55;
+      --bar: #3987e5; --above: #e66767; --below: #3987e5; --link: #86b6ef; --focus: #86b6ef;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
-    --series-1: #3987e5; --series-2: #d95926; --cool: #3987e5; --warm: #e66767; --link: #86b6ef;
+    --paper: #11151d; --sheet: #171c26; --ink: #e7eaf0; --ink-2: #b9c0cc; --ink-3: #8c94a3;
+    --rule: #2b3240; --grid: #222936; --marker: #8f7d16; --marker-alpha: .55;
+    --bar: #3987e5; --above: #e66767; --below: #3987e5; --link: #86b6ef; --focus: #86b6ef;
   }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--page); color: var(--ink);
-         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
-  header p { color: var(--ink-2); max-width: 70ch; margin: 4px 0 0; }
-  h1 { font-size: 26px; margin: 0; }
-  h2 { font-size: 18px; margin: 0 0 4px; }
-  .sub { color: var(--ink-2); margin: 0 0 16px; max-width: 75ch; }
-  section { margin-top: 28px; }
-  .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 20px; }
-  .hero { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 12px; }
-  .hero .card:first-child .value { font-size: 52px; }
-  .label { color: var(--ink-2); font-size: 13px; }
-  .value { font-size: 28px; font-weight: 600; line-height: 1.15; margin-top: 4px; }
-  .note { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
-  .key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--text); }
+  main { max-width: 1000px; margin: 0 auto; padding: 56px 16px 72px; }
+  a { color: var(--link); text-underline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+
+  /* type scale: 17 body · 14 small · 22 section · 40 title */
+  h1 { font: 600 40px/1.1 var(--text); letter-spacing: -0.01em; margin: 0; }
+  h2 { font: 600 22px/1.25 var(--text); margin: 0 0 6px; }
+  .lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 14px 0 0; }
+  .sub { color: var(--ink-2); max-width: 70ch; margin: 0 0 18px; font-size: 15.5px; }
+  .small { font-size: 14px; color: var(--ink-3); }
+
+  section { margin-top: 64px; }
+  section + section { border-top: 1px solid var(--rule); padding-top: 40px; }
+
+  /* hero: the finding is the chart */
+  .finding { margin-top: 48px; }
+  .finding h2 { font-size: 26px; max-width: 30ch; }
+  .chart { background: var(--sheet); border-radius: 6px; padding: 18px 18px 8px; margin-top: 18px; }
+  .key { display: flex; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); margin: 0 0 6px; }
+  .swatch { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: 0; }
+
   svg { display: block; width: 100%; height: auto; overflow: visible; }
-  svg text { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  svg text { font-family: var(--figure); font-size: 13px; fill: var(--ink-3); font-variant-numeric: tabular-nums; }
   svg .val { fill: var(--ink-2); }
-  .grid { stroke: var(--grid); stroke-width: 1; }
-  .axis { stroke: var(--axis); stroke-width: 1; }
-  .hit { fill: transparent; cursor: default; }
-  .tip { position: fixed; pointer-events: none; background: var(--surface); color: var(--ink);
-         border: 1px solid var(--ring); border-radius: 8px; padding: 6px 10px; font-size: 13px;
-         box-shadow: 0 4px 16px rgba(0,0,0,.12); opacity: 0; transition: opacity .08s; z-index: 10; }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th { text-align: left; color: var(--ink-2); font-weight: 600; border-bottom: 1px solid var(--axis); padding: 6px 8px; }
-  td { border-bottom: 1px solid var(--grid); padding: 6px 8px; vertical-align: top; }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .scroll { overflow-x: auto; }
-  a { color: var(--link); }
-  details { margin-top: 10px; font-size: 13px; color: var(--ink-2); }
-  select { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--axis);
-           background: var(--surface); color: var(--ink); }
-  .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 13px; color: var(--ink-2); }
-  .tag { display: inline-block; font-size: 11.5px; border: 1px solid var(--axis); border-radius: 4px; padding: 0 5px; margin: 0 3px 2px 0; color: var(--ink-2); }
-  footer { margin-top: 40px; color: var(--muted); font-size: 12.5px; }
-  @media (max-width: 760px) { .hero, .two { grid-template-columns: 1fr; } .hero .card:first-child .value { font-size: 44px; } }
+  svg .note { fill: var(--ink); font-size: 14px; font-weight: 500; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .axis { stroke: var(--rule); stroke-width: 1; }
+  .limit { stroke: var(--ink); stroke-width: 1.5; }
+  .marker { fill: var(--marker); opacity: var(--marker-alpha); }
+  .hit { fill: transparent; }
+  .hit:focus-visible { outline: none; fill: var(--ink); fill-opacity: .06; }
+
+  /* the one moment of motion: the highlighter stroke sweeps once across the band */
+  @media (prefers-reduced-motion: no-preference) {
+    .marker { transform-box: fill-box; transform-origin: left center; animation: stroke 900ms cubic-bezier(.3,.7,.2,1) 350ms both; }
+    @keyframes stroke { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  }
+
+  /* result as a sentence with a proportion bar */
+  .result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 34%); gap: 28px; align-items: end; margin-top: 28px; }
+  .result p { margin: 0; font-size: 21px; line-height: 1.4; max-width: 34ch; }
+  .result strong { font-weight: 600; }
+  .share { font-family: var(--figure); }
+  .share .track { height: 14px; background: var(--grid); border-radius: 3px; overflow: hidden; display: flex; }
+  .share .flagged { background: var(--marker); opacity: 1; width: 4.8%; }
+  .share .legend { display: flex; justify-content: space-between; font-size: 14px; color: var(--ink-2); margin-top: 6px; }
+
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 260px)); gap: 24px; margin-top: 30px; }
+  .fact { border-left: 2px solid var(--rule); padding-left: 14px; }
+  .fact .n { font: 500 24px/1.2 var(--figure); }
+  .fact .t { font-size: 14px; color: var(--ink-2); }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
+  .split > div { min-width: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th { text-align: left; color: var(--ink-2); font: 500 13.5px/1.3 var(--text); border-bottom: 1px solid var(--ink-3); padding: 8px 10px 8px 0; }
+  td { border-bottom: 1px solid var(--grid); padding: 9px 10px 9px 0; vertical-align: top; }
+  td.num, th.num { text-align: right; font-family: var(--figure); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.fig { font-family: var(--figure); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #examples table, #dq table { min-width: 680px; }   /* on phones the table scrolls inside its box, never the page */
+  td a { white-space: nowrap; }
+  .code { display: inline-block; font: 500 12.5px/1 var(--figure); color: var(--ink); border: 1px solid var(--ink-3); border-radius: 3px; padding: 3px 5px; margin: 0 4px 3px 0; }
+
+  details { margin-top: 12px; font-size: 14px; color: var(--ink-2); }
+  summary { cursor: pointer; }
+  .controls { display: flex; gap: 10px; align-items: center; margin: 0 0 10px; font-size: 14px; color: var(--ink-2); }
+  select { font: inherit; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px; padding: 5px 8px; }
+
+  .tip { position: fixed; pointer-events: none; background: var(--sheet); color: var(--ink); border: 1px solid var(--rule);
+         border-radius: 6px; padding: 7px 10px; font: 400 13.5px/1.4 var(--figure); box-shadow: 0 6px 20px rgba(24,35,58,.14);
+         opacity: 0; transition: opacity .08s; z-index: 10; max-width: 280px; }
+  .tip strong { font-weight: 600; display: block; }
+
+  footer { margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--ink-3); max-width: 80ch; }
+
+  @media (max-width: 760px) {
+    body { font-size: 16px; }
+    main { padding-top: 36px; }
+    h1 { font-size: 32px; }
+    .finding h2 { font-size: 22px; }
+    .result, .split { grid-template-columns: 1fr; gap: 24px; }
+    .result p { font-size: 19px; }
+    .facts { grid-template-columns: 1fr; gap: 14px; }
+    .chart { padding: 12px 8px 4px; margin-left: -8px; margin-right: -8px; }
+  }
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>riskhouse · public contract screening</h1>
-    <p>Every contract published in the Czech contract register (Registr smluv) is matched to the business register (ARES)
-       and checked with six explainable rules. Only contracts with a warning sign go to a person;
-       the rest are cleared automatically. A flag means <strong>flagged for manual review</strong>, not a finding of wrongdoing.</p>
+    <h1>riskhouse</h1>
+    <p class="lede">Every contract published in the Czech contract register (Registr smluv), checked against the business register (ARES)
+       with six explainable rules. Contracts with a warning sign go to a person; the rest are cleared automatically.</p>
   </header>
 
-  <section class="hero" id="hero"></section>
+  <div class="finding">
+    <h2>Contract values thin out sharply just above the 2 million CZK tender limit</h2>
+    <p class="sub">Supplies and services, value excl. VAT, counted in 50,000 CZK bands. Above 2,000,000 CZK the law requires a public tender.
+       Counts fall gradually with value, then drop by about a third right above the limit, which is consistent with contracts being sized
+       to stay under it. It is a pattern worth reviewing, not proof of anything.</p>
+    <div class="chart">
+      <div class="key">
+        <span><span class="swatch" style="background:var(--marker)"></span>Within 90–100 % of the limit, flagged by rule R5</span>
+        <span><span class="swatch" style="background:var(--bar)"></span>Contracts per value band</span>
+      </div>
+      <div id="histogram"></div>
+    </div>
+    <details><summary>Show the numbers as a table</summary><div class="scroll" id="histogram-table"></div></details>
 
-  <section class="card">
-    <h2>Contract values thin out sharply just above the 2 M CZK tender limit</h2>
-    <p class="sub">Contracts for supplies and services, value stated excl. VAT, in 50,000 CZK bands. Above 2,000,000 CZK the law
-       requires a public tender. Counts fall gradually with value, then drop by about a third right above the limit:
-       consistent with contracts being sized to stay under it. It is a pattern to review, not proof.</p>
-    <div class="legend"><span><span class="key" style="background:var(--series-2)"></span>Within 90–100 % of the limit (rule R5)</span>
-      <span><span class="key" style="background:var(--series-1)"></span>Other value bands</span></div>
-    <div id="histogram"></div>
-    <details><summary>Show as table</summary><div class="scroll" id="histogram-table"></div></details>
-  </section>
+    <div class="result">
+      <p id="result-text"></p>
+      <div class="share" aria-hidden="true">
+        <div class="track"><div class="flagged"></div></div>
+        <div class="legend"><span id="share-flagged"></span><span id="share-cleared"></span></div>
+      </div>
+    </div>
+    <div class="facts" id="facts"></div>
+  </div>
 
-  <section class="two">
-    <div class="card">
+  <section class="split">
+    <div>
       <h2>Why contracts are flagged</h2>
       <p class="sub">Contracts per rule. One contract can carry several flags.</p>
       <div id="rules"></div>
-      <details><summary>Show as table</summary><div class="scroll" id="rules-table"></div></details>
+      <details><summary>Show as a table</summary><div class="scroll" id="rules-table"></div></details>
     </div>
-    <div class="card">
+    <div>
       <h2>Motor insurance: who costs more than average</h2>
-      <p class="sub">Expected claim cost per policy-year relative to the portfolio average (1.00), freMTPL2 (678,013 real policies).
-         Above 1.00, a flat price would undercharge the segment.</p>
-      <div class="controls"><label for="factor">Rating factor</label><select id="factor"></select></div>
-      <div class="legend"><span><span class="key" style="background:var(--warm)"></span>Costs more than average</span>
-        <span><span class="key" style="background:var(--cool)"></span>Costs less than average</span></div>
+      <p class="sub">Expected claim cost per policy-year against the portfolio average of 1.00, from 678,013 real policies (freMTPL2).
+         Above 1.00, one flat price would undercharge the group.</p>
+      <div class="controls"><label for="factor">Group drivers by</label><select id="factor"></select></div>
+      <div class="key">
+        <span><span class="swatch" style="background:var(--above)"></span>Costs more than average</span>
+        <span><span class="swatch" style="background:var(--below)"></span>Costs less</span>
+      </div>
       <div id="motor"></div>
-      <details><summary>Show as table</summary><div class="scroll" id="motor-table"></div></details>
+      <details><summary>Show as a table</summary><div class="scroll" id="motor-table"></div></details>
     </div>
   </section>
 
-  <section class="card">
+  <section>
     <h2>Examples flagged for manual review</h2>
-    <p class="sub">The largest contracts per rule. Each links to the official record on smlouvy.gov.cz so anyone can check the source.
+    <p class="sub">The largest contracts for each rule. Every row links to the official record on smlouvy.gov.cz, so anyone can check the source.
        Private individuals are never listed.</p>
     <div class="scroll" id="examples"></div>
   </section>
 
-  <section class="card">
-    <h2>Data quality: what was wrong in the source and what the pipeline did</h2>
-    <p class="sub">Obvious export errors are corrected and counted; anything needing a business decision is kept and flagged, never silently dropped.</p>
+  <section>
+    <h2>What was wrong in the source data</h2>
+    <p class="sub">Obvious export errors are corrected and counted. Anything that needs a business decision is kept and flagged, never silently dropped.</p>
     <div class="scroll" id="dq"></div>
   </section>
 
   <footer id="footer"></footer>
 </main>
-<div class="tip" id="tip" role="status"></div>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
 
 <script src="data/dashboard_data.js"></script>
 <script>
@@ -148,7 +227,7 @@
     if (text !== undefined) e.textContent = text;
     return e;
   };
-  // bar with a 4px rounded data end and a square base (horizontal: base at x0; vertical: base at y0)
+  // bar with a 4px rounded data end and a square base (horizontal: base at x; vertical: base at y + h)
   const barPath = (x, y, w, h, horizontal) => {
     const r = Math.min(4, horizontal ? w / 2 : h / 2, horizontal ? h / 2 : w / 2);
     if (w <= 0 || h <= 0) return "";
@@ -156,14 +235,27 @@
       ? `M${x},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}h${-(w - r)}z`
       : `M${x},${y + h}v${-(h - r)}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - r}z`;
   };
+
+  // tooltips for pointer and keyboard (each hit target is focusable)
   const tip = document.getElementById("tip");
-  const showTip = (evt, lines) => {
+  const placeTip = (x, y) => {
+    tip.style.left = Math.max(8, Math.min(x + 14, innerWidth - tip.offsetWidth - 8)) + "px";
+    tip.style.top = Math.min(y + 14, innerHeight - tip.offsetHeight - 8) + "px";
+  };
+  const showTip = (lines, x, y) => {
     tip.replaceChildren(...lines.map((t, i) => el(i ? "div" : "strong", {}, t)));
-    tip.style.left = Math.min(evt.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
-    tip.style.top = (evt.clientY + 14) + "px";
-    tip.style.opacity = 1;
+    tip.style.opacity = 1; placeTip(x, y);
   };
   const hideTip = () => { tip.style.opacity = 0; };
+  const hover = (node, lines) => {
+    node.setAttribute("tabindex", "0");
+    node.setAttribute("aria-label", lines.join(", "));
+    node.addEventListener("mousemove", e => showTip(lines, e.clientX, e.clientY));
+    node.addEventListener("mouseleave", hideTip);
+    node.addEventListener("focus", () => { const r = node.getBoundingClientRect(); showTip(lines, r.left + r.width / 2, r.top); });
+    node.addEventListener("blur", hideTip);
+  };
+
   const table = (target, columns, rows) => {
     const t = el("table"), head = el("tr");
     columns.forEach(c => head.append(el("th", c.num ? { class: "num" } : {}, c.title)));
@@ -171,7 +263,7 @@
     rows.forEach(r => {
       const tr = el("tr");
       columns.forEach(c => {
-        const td = el("td", c.num ? { class: "num" } : {});
+        const td = el("td", c.num ? { class: "num" } : c.fig ? { class: "fig" } : {});
         const v = c.value(r);
         if (v instanceof Node) td.append(v); else td.textContent = v;
         tr.append(td);
@@ -181,66 +273,70 @@
     document.getElementById(target).replaceChildren(t);
   };
 
-  // ---- hero: one headline number, three supporting tiles
+  // ---- the result, as a sentence
   const S = D.summary, pct = (100 * S.flagged / S.contracts).toFixed(1);
-  const tile = (label, value, note) => {
-    const c = el("div", { class: "card" });
-    c.append(el("div", { class: "label" }, label), el("div", { class: "value" }, value));
-    if (note) c.append(el("div", { class: "note" }, note));
-    return c;
-  };
-  document.getElementById("hero").append(
-    tile("Contracts flagged for manual review", pct + " %", `${fmt(S.flagged)} of ${fmt(S.contracts)} contracts`),
-    tile("Contracts screened", fmt(S.contracts), S.period),
-    tile("Cleared automatically", fmt(S.auto_cleared), "no warning sign found"),
-    tile("Reviewer hours saved", `${fmt(Math.round(S.hours_low / 1000))}K–${fmt(Math.round(S.hours_high / 1000))}K`,
-         "assumes 5–15 min to check one contract by hand"));
+  const result = document.getElementById("result-text");
+  result.append(el("strong", {}, `${fmt(S.flagged)} of ${fmt(S.contracts)} contracts`),
+                document.createTextNode(` (${pct} %) need a person. The other ${fmt(S.auto_cleared)} showed no warning sign and were cleared automatically.`));
+  document.querySelector(".share .flagged").style.width = pct + "%";
+  document.getElementById("share-flagged").textContent = `${pct} % flagged for manual review`;
+  document.getElementById("share-cleared").textContent = `${(100 - pct).toFixed(1)} % cleared`;
+  const fact = (n, t) => { const f = el("div", { class: "fact" }); f.append(el("div", { class: "n" }, n), el("div", { class: "t" }, t)); return f; };
+  document.getElementById("facts").append(
+    fact(`${fmt(Math.round(S.hours_low / 1000))}–${fmt(Math.round(S.hours_high / 1000))} thousand hours`,
+         "of manual checking saved, if one contract takes a reviewer 5 to 15 minutes"),
+    fact(fmt(D.rule_hits.find(r => r.rule === "R5").contracts),
+         "contracts priced at 90–100 % of the tender limit"));
 
-  // ---- histogram (vertical columns, one baseline, reference line at the limit)
+  // ---- hero chart: columns per value band, the R5 band highlighted, the limit drawn as a line
   (() => {
-    const H = D.histogram, W = 960, Ht = 300, m = { l: 44, r: 12, t: 20, b: 34 };
+    const H = D.histogram, W = 960, Ht = 330, m = { l: 46, r: 8, t: 34, b: 30 };
     const iw = W - m.l - m.r, ih = Ht - m.t - m.b;
     const max = Math.ceil(Math.max(...H.map(d => d.contracts)) / 200) * 200;
     const band = iw / H.length, bw = Math.min(24, band - 2);
     const y = v => m.t + ih - (v / max) * ih;
     const s = svgEl("svg", { viewBox: `0 0 ${W} ${Ht}`, role: "img",
-      "aria-label": "Column chart of contract counts per 50,000 CZK value band from 1 to 3 million CZK" });
+      "aria-label": "Column chart: contracts per 50,000 CZK band from 1 to 3 million CZK. Counts drop by about a third right above the 2 million CZK tender limit." });
     for (let v = 0; v <= max; v += 200) {
-      s.append(svgEl("line", { class: v ? "grid" : "axis", x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }));
+      s.append(svgEl("line", { class: v ? "gridline" : "axis", x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }));
       s.append(svgEl("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" }, v ? fmt(v) : "0"));
     }
+    // the reviewer's highlighter stroke behind the 90-100 % band
+    const i0 = H.findIndex(d => d.bin_start === 1800000), i1 = H.findIndex(d => d.bin_start === 2000000);
+    if (i0 >= 0 && i1 > i0) {
+      const top = y(Math.max(...H.slice(i0, i1).map(d => d.contracts))) - 22;
+      s.append(svgEl("rect", { class: "marker", x: m.l + i0 * band - 2, y: top, width: (i1 - i0) * band + 4, height: y(0) - top, rx: 5 }));
+    }
     H.forEach((d, i) => {
-      const x = m.l + i * band + (band - bw) / 2, inR5 = d.bin_start >= 1800000 && d.bin_start < 2000000;
-      s.append(svgEl("path", { d: barPath(x, y(d.contracts), bw, y(0) - y(d.contracts), false),
-        fill: inR5 ? "var(--series-2)" : "var(--series-1)" }));
-      const hit = svgEl("rect", { class: "hit", x: m.l + i * band, y: m.t, width: band, height: ih });
-      hit.addEventListener("mousemove", e => showTip(e, [`${czk(d.bin_start)} – ${czk(d.bin_start + 50000)}`, `${fmt(d.contracts)} contracts`]));
-      hit.addEventListener("mouseleave", hideTip);
-      s.append(hit);
-      if (d.bin_start % 250000 === 0) s.append(svgEl("text", { x: m.l + i * band, y: Ht - 12, "text-anchor": "middle" }, (d.bin_start / 1e6).toFixed(2) + " M"));
+      const x = m.l + i * band + (band - bw) / 2;
+      s.append(svgEl("path", { d: barPath(x, y(d.contracts), bw, y(0) - y(d.contracts), false), fill: "var(--bar)" }));
+      if (d.bin_start % 250000 === 0) s.append(svgEl("text", { x: m.l + i * band, y: Ht - 8, "text-anchor": "middle" }, (d.bin_start / 1e6).toFixed(2) + " M"));
     });
-    const limitX = m.l + H.findIndex(d => d.bin_start === 2000000) * band;
-    s.append(svgEl("line", { x1: limitX, x2: limitX, y1: m.t - 6, y2: y(0), stroke: "var(--ink-2)", "stroke-width": 1.5 }));
-    s.append(svgEl("text", { x: limitX + 6, y: m.t + 2, class: "val" }, "2 M CZK tender limit"));
+    H.forEach((d, i) => {   // hit targets on top, wider than the columns
+      const hit = svgEl("rect", { class: "hit", x: m.l + i * band, y: m.t, width: band, height: ih });
+      hover(hit, [`${czk(d.bin_start)} to ${czk(d.bin_start + 50000)}`, `${fmt(d.contracts)} contracts`]);
+      s.append(hit);
+    });
+    const limitX = m.l + i1 * band;
+    s.append(svgEl("line", { class: "limit", x1: limitX, x2: limitX, y1: m.t - 14, y2: y(0) }));
+    s.append(svgEl("text", { x: limitX + 8, y: m.t - 4, class: "note" }, "2,000,000 CZK: above this, a public tender is required"));
     document.getElementById("histogram").append(s);
-    table("histogram-table", [{ title: "Value band", value: d => `${czk(d.bin_start)} – ${czk(d.bin_start + 50000)}` },
+    table("histogram-table", [{ title: "Value band", value: d => `${czk(d.bin_start)} to ${czk(d.bin_start + 50000)}` },
       { title: "Contracts", num: true, value: d => fmt(d.contracts) }], H);
   })();
 
-  // ---- rule hits (horizontal bars, single series: no legend, values at the tips)
+  // ---- rule hits: one series, values at the bar ends
   (() => {
-    const R = D.rule_hits, W = 460, row = 34, m = { l: 34, r: 64, t: 4 }, Ht = m.t + R.length * row;
-    const max = Math.max(...R.map(d => d.contracts)), iw = W - m.l - m.r, bh = 18;
-    const s = svgEl("svg", { viewBox: `0 0 ${W} ${Ht}`, role: "img", "aria-label": "Bar chart of flagged contracts per rule" });
-    s.append(svgEl("line", { class: "axis", x1: m.l, x2: m.l, y1: 0, y2: Ht }));
+    const R = D.rule_hits, W = 460, row = 46, bh = 16, labelW = 0, m = { t: 2, r: 56 };
+    const max = Math.max(...R.map(d => d.contracts)), iw = W - m.r;
+    const s = svgEl("svg", { viewBox: `0 0 ${W} ${m.t + R.length * row}`, role: "img", "aria-label": "Bar chart: flagged contracts per rule" });
     R.forEach((d, i) => {
-      const yy = m.t + i * row + (row - bh) / 2, w = Math.max(2, (d.contracts / max) * iw);
-      s.append(svgEl("text", { x: 0, y: yy + 13, class: "val" }, d.rule));
-      s.append(svgEl("path", { d: barPath(m.l, yy, w, bh, true), fill: "var(--series-1)" }));
-      s.append(svgEl("text", { x: m.l + w + 6, y: yy + 13, class: "val" }, fmt(d.contracts)));
-      const hit = svgEl("rect", { class: "hit", x: 0, y: m.t + i * row, width: W, height: row });
-      hit.addEventListener("mousemove", e => showTip(e, [`${d.rule} · ${d.label}`, `${fmt(d.contracts)} contracts flagged`]));
-      hit.addEventListener("mouseleave", hideTip);
+      const top = m.t + i * row, w = Math.max(2, (d.contracts / max) * iw);
+      s.append(svgEl("text", { x: labelW, y: top + 13, class: "val" }, `${d.rule}  ${d.label}`));
+      s.append(svgEl("path", { d: barPath(labelW, top + 20, w, bh, true), fill: "var(--bar)" }));
+      s.append(svgEl("text", { x: labelW + w + 6, y: top + 33, class: "val" }, fmt(d.contracts)));
+      const hit = svgEl("rect", { class: "hit", x: 0, y: top, width: W, height: row });
+      hover(hit, [`${d.rule}: ${d.label}`, `${fmt(d.contracts)} contracts flagged`]);
       s.append(hit);
     });
     document.getElementById("rules").append(s);
@@ -248,75 +344,72 @@
       { title: "Contracts", num: true, value: d => fmt(d.contracts) }], R);
   })();
 
-  // ---- motor relativity (diverging around 1.00, blue below / red above)
+  // ---- motor: diverging bars around 1.00
   (() => {
     const factors = [...new Set(D.motor.map(d => d.factor))];
     const select = document.getElementById("factor");
     factors.forEach(f => select.append(el("option", { value: f }, f)));
-    select.value = factors.includes("Bonus-malus") ? "Bonus-malus" : factors[0];
+    select.value = factors.includes("Driver age") ? "Driver age" : factors[0];
+    const key = s => { const n = parseFloat(String(s).replace(/^</, "-")); return isNaN(n) ? null : n; };
     const draw = () => {
-      const key = s => { const n = parseFloat(String(s).replace(/^</, "-")); return isNaN(n) ? null : n; };
       const R = D.motor.filter(d => d.factor === select.value).sort((a, b) =>
         key(a.segment) !== null && key(b.segment) !== null ? key(a.segment) - key(b.segment) : String(a.segment).localeCompare(b.segment));
-      const W = 460, row = 32, m = { l: 104, r: 52, t: 4, b: 22 }, Ht = m.t + R.length * row + m.b, bh = 18;
+      const W = 460, row = 32, bh = 16, m = { l: 96, r: 44, t: 4, b: 24 }, Ht = m.t + R.length * row + m.b;
       const rmin = Math.min(...R.map(d => d.relativity)), hi = Math.max(1.5, ...R.map(d => d.relativity));
-      const lo = Math.min(0.5, rmin) - 0.12 * (hi - Math.min(0.5, rmin));   // space for the value label of the lowest bar
+      const lo = Math.min(0.5, rmin) - 0.12 * (hi - Math.min(0.5, rmin));
       const x = v => m.l + (v - lo) / (hi - lo) * (W - m.l - m.r);
-      const s = svgEl("svg", { viewBox: `0 0 ${W} ${Ht}`, role: "img",
-        "aria-label": `Bar chart of claim-cost relativity by ${select.value}` });
+      const s = svgEl("svg", { viewBox: `0 0 ${W} ${Ht}`, role: "img", "aria-label": `Bar chart: claim-cost relativity by ${select.value}` });
       R.forEach((d, i) => {
-        const yy = m.t + i * row + (row - bh) / 2, above = d.relativity >= 1;
-        const x0 = x(Math.min(1, d.relativity)), w = Math.abs(x(d.relativity) - x(1));
-        s.append(svgEl("text", { x: m.l - 8, y: yy + 13, "text-anchor": "end", class: "val" }, d.segment));
+        const top = m.t + i * row + (row - bh) / 2, above = d.relativity >= 1, w = Math.abs(x(d.relativity) - x(1));
+        s.append(svgEl("text", { x: m.l - 10, y: top + 12, "text-anchor": "end", class: "val" }, d.segment));
         if (w > 0.5) {
-          // the data end (rounded) points away from the 1.00 baseline
-          const p = above ? barPath(x0, yy, w, bh, true)
-                          : barPath(0, 0, w, bh, true);
-          const path = svgEl("path", { d: p, fill: above ? "var(--warm)" : "var(--cool)" });
-          if (!above) path.setAttribute("transform", `translate(${x(1)},${yy}) scale(-1,1)`);
+          const path = svgEl("path", { d: above ? barPath(x(1), top, w, bh, true) : barPath(0, 0, w, bh, true),
+                                       fill: above ? "var(--above)" : "var(--below)" });
+          if (!above) path.setAttribute("transform", `translate(${x(1)},${top}) scale(-1,1)`);
           s.append(path);
         }
-        s.append(svgEl("text", { x: above ? x(d.relativity) + 6 : x(d.relativity) - 6, y: yy + 13,
+        s.append(svgEl("text", { x: above ? x(d.relativity) + 6 : x(d.relativity) - 6, y: top + 12,
           "text-anchor": above ? "start" : "end", class: "val" }, d.relativity.toFixed(2)));
         const hit = svgEl("rect", { class: "hit", x: 0, y: m.t + i * row, width: W, height: row });
-        hit.addEventListener("mousemove", e => showTip(e, [`${select.value}: ${d.segment}`,
-          `relativity ${d.relativity.toFixed(2)}`, `${fmt(Math.round(d.exposure_years))} policy-years · frequency ${(d.frequency * 100).toFixed(1)} %`,
-          `average claim ${fmt(Math.round(d.severity_eur || 0))} EUR`]));
-        hit.addEventListener("mouseleave", hideTip);
+        hover(hit, [`${select.value}: ${d.segment}`, `${d.relativity.toFixed(2)} × the average claim cost`,
+          `${fmt(Math.round(d.exposure_years))} policy-years, ${(d.frequency * 100).toFixed(1)} % claim frequency`,
+          `average claim ${fmt(Math.round(d.severity_eur || 0))} EUR`]);
         s.append(hit);
       });
       s.append(svgEl("line", { class: "axis", x1: x(1), x2: x(1), y1: 0, y2: Ht - m.b }));
       s.append(svgEl("text", { x: x(1), y: Ht - 6, "text-anchor": "middle" }, "1.00 = average"));
       document.getElementById("motor").replaceChildren(s);
-      table("motor-table", [{ title: "Segment", value: d => d.segment },
+      table("motor-table", [{ title: "Group", value: d => d.segment },
         { title: "Policy-years", num: true, value: d => fmt(Math.round(d.exposure_years)) },
         { title: "Claim frequency", num: true, value: d => (d.frequency * 100).toFixed(1) + " %" },
         { title: "Average claim (EUR)", num: true, value: d => fmt(Math.round(d.severity_eur || 0)) },
-        { title: "Relativity", num: true, value: d => d.relativity.toFixed(2) }], R);
+        { title: "× average", num: true, value: d => d.relativity.toFixed(2) }], R);
     };
     select.addEventListener("change", draw);
     draw();
   })();
 
-  // ---- examples (links only to the official register)
+  // ---- examples: links only to the official register
   const link = url => {
     const safe = typeof url === "string" && url.startsWith("https://smlouvy.gov.cz/");
-    return safe ? el("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, "record") : el("span", {}, "–");
+    return safe ? el("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, "Open record") : el("span", {}, "No link");
   };
-  const tags = flags => { const s = el("span"); String(flags).split(" ").filter(Boolean).forEach(f => s.append(el("span", { class: "tag" }, f))); return s; };
+  const codes = flags => { const s = el("span"); String(flags).split(" ").filter(Boolean).forEach(f => s.append(el("span", { class: "code" }, f))); return s; };
   table("examples", [
-    { title: "Flags", value: d => tags(d.flags) }, { title: "Buyer", value: d => d.buyer_name },
-    { title: "Supplier", value: d => d.supplier }, { title: "Signed", num: true, value: d => d.signed_date },
+    { title: "Flags", value: d => codes(d.flags) }, { title: "Buyer", value: d => d.buyer_name },
+    { title: "Supplier", value: d => d.supplier }, { title: "Signed", fig: true, value: d => d.signed_date },
     { title: "Value", num: true, value: d => czk(d.value_czk) }, { title: "Source", value: d => link(d.url) }],
     D.examples.filter((d, i, a) => a.findIndex(o => o.contract_id === d.contract_id && o.supplier === d.supplier) === i));
 
-  table("dq", [{ title: "Area", value: d => d.entity }, { title: "What was found", value: d => d.check_name },
+  table("dq", [{ title: "Area", value: d => d.entity === "contracts" ? "Contracts" : "Counterparties" },
+    { title: "What was found", value: d => d.check_name },
     { title: "Records", num: true, value: d => fmt(d.records) }, { title: "What the pipeline did", value: d => d.action_taken }],
     D.data_quality);
 
   document.getElementById("footer").textContent =
-    `Sources: Registr smluv open data, ARES (Ministry of Finance), ČNB exchange rates, freMTPL2 (OpenML, CC0). ` +
-    `Contracts published ${S.period}. Built with dbt, DuckDB and Databricks-ready SQL; see the repository README.`;
+    "Sources: Registr smluv open data, ARES (Ministry of Finance), ČNB exchange rates, freMTPL2 (OpenML, CC0). " +
+    "A flag means flagged for manual review, not a finding of wrongdoing. Built with dbt on DuckDB and verified on Databricks; " +
+    "code and method in the repository.";
 })();
 </script>
 </body>
