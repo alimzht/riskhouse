@@ -7,12 +7,12 @@ Files already downloaded are skipped, so the script can be re-run after a droppe
 """
 import sys
 import time
-from pathlib import Path
 
 import requests
 
-ROOT = Path(__file__).resolve().parents[1]
-RAW = ROOT / "data" / "raw" / "contracts"
+from paths import RAW_CONTRACTS
+
+RAW = RAW_CONTRACTS
 URL = "https://data.smlouvy.gov.cz/dump_{y}_{m}.xml"
 
 

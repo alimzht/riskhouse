@@ -15,9 +15,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from lxml import etree
 
-ROOT = Path(__file__).resolve().parents[1]
-RAW = ROOT / "data" / "raw" / "contracts"
-OUT = ROOT / "data" / "landing"
+from paths import LANDING, RAW_CONTRACTS
+
+RAW = RAW_CONTRACTS
+OUT = LANDING
 
 # leaf path under <zaznam> -> column name
 CONTRACT_FIELDS = {

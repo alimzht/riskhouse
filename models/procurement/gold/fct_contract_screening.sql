@@ -6,14 +6,14 @@ with base as (
         c.contract_id, c.version_id, c.url, c.signed_date, c.published_date, c.subject,
         c.buyer_ico, c.buyer_name, c.value_czk, c.value_basis, c.contract_type, c.tender_limit_czk,
         p.party_seq, p.party_name, p.party_ico, p.ico_status, p.is_natural_person, p.is_foreign,
-        s.found              as in_register,
+        s.found_in_ares      as in_register,
         s.registered_name, s.founded_date, s.dissolved_date, s.in_liquidation, s.region, s.nace_code,
         coalesce(s.is_public_body, false) as supplier_is_public_body,
         -- a company is expected to have a valid Czech IČO; individuals and foreign suppliers are not
         not (p.is_natural_person or p.is_foreign)                          as expects_czech_ico
     from {{ ref('stg_contracts') }} c
     join {{ ref('stg_contract_parties') }} p on p.version_id = c.version_id
-    left join {{ ref('stg_suppliers') }} s on s.ico = p.party_ico
+    left join {{ ref('stg_ares_companies') }} s on s.ico = p.party_ico
 ),
 -- R6 contract splitting: same buyer and supplier, other contracts within the window, each below the limit
 -- but together above it

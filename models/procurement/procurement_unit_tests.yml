@@ -22,7 +22,7 @@ unit_tests:
           - {contract_id: "5", version_id: "50", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "2026-07-02", subject: "Darovací smlouva"}
           # T-V05 construction from the subject; T-V06 year 0001 is a typo -> unknown date
           - {contract_id: "6", version_id: "60", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "0001-01-01", value_excl_vat: "1900000", subject: "Rekonstrukce chodníku"}
-      - input: ref('stg_fx_rates')
+      - input: ref('stg_cnb_rates')
         rows:
           - {rate_date: "2026-07-03", currency: "EUR", czk_per_unit: 25.0}
           - {rate_date: "2026-07-06", currency: "EUR", czk_per_unit: 99.0}
@@ -86,14 +86,14 @@ unit_tests:
           - {version_id: "7", party_seq: 1, party_ico: "77777777", ico_status: valid, is_natural_person: false, is_foreign: false}
           - {version_id: "8", party_seq: 1, party_ico: "77777777", ico_status: valid, is_natural_person: false, is_foreign: false}
           - {version_id: "9", party_seq: 1, party_ico: "77777777", ico_status: valid, is_natural_person: false, is_foreign: false}
-      - input: ref('stg_suppliers')
+      - input: ref('stg_ares_companies')
         rows:
-          - {ico: "11111111", found: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
-          - {ico: "22222222", found: true, founded_date: "2026-07-01", in_liquidation: false, is_public_body: false}
-          - {ico: "33333333", found: true, founded_date: "2010-01-01", dissolved_date: "2026-03-01", in_liquidation: false, is_public_body: false}
-          - {ico: "55555555", found: false, is_public_body: false}
-          - {ico: "66666666", found: true, founded_date: null, in_liquidation: false, is_public_body: true}
-          - {ico: "77777777", found: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+          - {ico: "11111111",  found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+          - {ico: "22222222",  found_in_ares: true, founded_date: "2026-07-01", in_liquidation: false, is_public_body: false}
+          - {ico: "33333333",  found_in_ares: true, founded_date: "2010-01-01", dissolved_date: "2026-03-01", in_liquidation: false, is_public_body: false}
+          - {ico: "55555555",  found_in_ares: false, is_public_body: false}
+          - {ico: "66666666",  found_in_ares: true, founded_date: null, in_liquidation: false, is_public_body: true}
+          - {ico: "77777777",  found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
     expect:
       rows:
         - {contract_id: "1", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: false, review_queue: auto_clear}
@@ -127,9 +127,9 @@ unit_tests:
           - {version_id: "3", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
           - {version_id: "4", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
           - {version_id: "5", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
-      - input: ref('stg_suppliers')
+      - input: ref('stg_ares_companies')
         rows:
-          - {ico: "11111111", found: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+          - {ico: "11111111",  found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
     expect:
       rows:
         - {contract_id: "1", r5_near_limit: true}

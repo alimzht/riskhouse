@@ -13,9 +13,10 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
 
-ROOT = Path(__file__).resolve().parents[1]
-RAW = ROOT / "data" / "raw" / "motor"
-OUT = ROOT / "data" / "landing"
+from paths import LANDING, RAW_MOTOR
+
+RAW = RAW_MOTOR
+OUT = LANDING
 FILES = {  # OpenML file id -> (name, landing table)
     "20649148": ("freMTPL2freq", "motor_policies"),
     "20649149": ("freMTPL2sev", "motor_claims"),

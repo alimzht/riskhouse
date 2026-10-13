@@ -9,7 +9,6 @@ logs/
 .venv/
 __pycache__/
 .user.yml
-_reuse/
 spark-warehouse/
 metastore_db/
 powerbi/*.csv

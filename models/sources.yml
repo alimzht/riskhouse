@@ -1,7 +1,7 @@
 version: 2
 sources:
   # Landing tables as Delta, loaded by notebooks/01_land.py. Used on Spark/Databricks only;
-  # locally (DuckDB) bronze reads data/landing/*.parquet directly (macros/bronze_source.sql).
+  # locally (DuckDB) bronze reads data/landing/*.parquet directly (macros/landing.sql).
   - name: landing
     schema: landing
     tables:

@@ -2,14 +2,14 @@
 with ares as (
     select
         ico,
-        found,
+        found                                                                 as found_in_ares,
         {{ json_text('subject', '$.obchodniJmeno') }}                         as registered_name,
         try_cast({{ json_text('subject', '$.datumVzniku') }} as date)          as founded_date,
         try_cast({{ json_text('subject', '$.datumZaniku') }} as date)          as dissolved_date,
         {{ json_text('subject', '$.pravniForma') }}                           as legal_form_code,
         {{ json_text('subject', '$.sidlo.nazevKraje') }}                      as region,
         {{ json_text('subject', '$.czNace[0]') }}                             as nace_code
-    from {{ ref('brz_ares') }}
+    from {{ ref('brz_ares_companies') }}
 ),
 buyers as (select distinct buyer_ico as ico from {{ ref('stg_contracts') }})
 select

@@ -6,14 +6,14 @@ data/landing/cnb_rates.parquet: rate_date '02.01.2026', unit '100', currency 'HU
 Kept exactly as published (Czech date and decimal formats, per-unit quotes); dbt converts them.
 """
 import sys
-from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 import requests
 
-ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "data" / "landing" / "cnb_rates.parquet"
+from paths import LANDING
+
+OUT = LANDING / "cnb_rates.parquet"
 URL = "https://www.cnb.cz/cs/financni-trhy/devizovy-trh/kurzy-devizoveho-trhu/kurzy-devizoveho-trhu/rok.txt?rok={year}"
 
 

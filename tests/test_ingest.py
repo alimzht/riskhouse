@@ -7,19 +7,19 @@ import pyarrow.parquet as pq
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ingest"))
 
-import fetch_ares  # noqa: E402
+import lookup_ares  # noqa: E402
 import parse_contracts  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures" / "contracts"
 
 
 def test_ico_normalisation():
-    assert fetch_ares.normalise("27082440") == "27082440"
-    assert fetch_ares.normalise("6947") == "00006947"       # published without leading zeros
-    assert fetch_ares.normalise(" 2708 2440 ") == "27082440"
-    assert fetch_ares.normalise("CZ27082440") is None       # VAT number, not an IČO
-    assert fetch_ares.normalise("123456789") is None        # too long
-    assert fetch_ares.normalise(None) is None
+    assert lookup_ares.normalise("27082440") == "27082440"
+    assert lookup_ares.normalise("6947") == "00006947"       # published without leading zeros
+    assert lookup_ares.normalise(" 2708 2440 ") == "27082440"
+    assert lookup_ares.normalise("CZ27082440") is None       # VAT number, not an IČO
+    assert lookup_ares.normalise("123456789") is None        # too long
+    assert lookup_ares.normalise(None) is None
 
 
 def test_parse_contracts(tmp_path, monkeypatch):

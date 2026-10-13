@@ -14,14 +14,14 @@ import json
 import re
 import sys
 import time
-from pathlib import Path
 
 import pyarrow.parquet as pq
 import requests
 
-ROOT = Path(__file__).resolve().parents[1]
-PARTIES = ROOT / "data" / "landing" / "contract_parties.parquet"
-OUT = ROOT / "data" / "landing" / "ares_raw.jsonl"
+from paths import LANDING
+
+PARTIES = LANDING / "contract_parties.parquet"
+OUT = LANDING / "ares_raw.jsonl"
 URL = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/vyhledat"
 BATCH = 100
 

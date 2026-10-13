@@ -46,7 +46,7 @@ fx as (
     select t.contract_id, r.czk_per_unit,
            row_number() over (partition by t.contract_id order by r.rate_date desc) as rn
     from dated t
-    join {{ ref('stg_fx_rates') }} r
+    join {{ ref('stg_cnb_rates') }} r
       on r.currency = t.foreign_currency
      and r.rate_date <= coalesce(t.signed_date, t.published_date)
      and r.rate_date >= {{ dateadd_days('coalesce(t.signed_date, t.published_date)', -10) }}
