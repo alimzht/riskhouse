@@ -7,6 +7,13 @@ riskhouse:
       path: riskhouse.duckdb
       threads: 4
 
+    # CI (and local CI runs): its own DuckDB file, so it never shares a database with dev. Reads the committed
+    # sample: `dbt build --target ci --vars '{landing_path: tests/fixtures/landing}'`
+    ci:
+      type: duckdb
+      path: ci.duckdb
+      threads: 4
+
     # Production: Databricks (Free Edition works). `dbt build --target databricks`, after the landing notebook.
     # Credentials come from environment variables and are never committed. See docs/databricks.md.
     databricks:

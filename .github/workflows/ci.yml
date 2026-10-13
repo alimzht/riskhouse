@@ -1,0 +1,33 @@
+# CI: fully offline. Raw data is never committed, so the pipeline runs on the tiny committed sample in
+# tests/fixtures/landing (rebuild it with: python tests/fixtures/make_landing_sample.py).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: utf-8   # Czech characters in logs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Landing code (XML parsing etc.)
+      - name: pytest
+        run: pytest -q tests
+
+      # bronze -> silver -> gold with data and unit tests, on its own DuckDB file (target ci -> ci.duckdb)
+      - name: dbt build on the fixture sample
+        run: |
+          dbt build --profiles-dir . --target ci --vars '{landing_path: tests/fixtures/landing}'

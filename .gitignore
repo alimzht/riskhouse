@@ -15,3 +15,6 @@ powerbi/*.csv
 powerbi/*.pbix
 **/.pbi/localSettings.json
 **/.pbi/cache.abf
+# local secrets (Databricks token etc.); the committed template is .env.example
+.env
+# ci.duckdb (the CI target's database) is covered by *.duckdb above
