@@ -63,8 +63,8 @@ valued as (
         -- Money stays fixed-point: a float here made sums (R6) differ in the last digits from run to run.
         cast(case
             when t.value_excl_vat is not null then t.value_excl_vat
-            when t.value_incl_vat is not null then round(t.value_incl_vat / (1 + {{ var('vat_rate') }}), 2)
-            when t.foreign_value  is not null then round(t.foreign_value * fx.czk_per_unit, 2)
+            when t.value_incl_vat is not null then {{ divide_czk('t.value_incl_vat', ((1 + var('vat_rate')) * 100) | round | int) }}
+            when t.foreign_value  is not null then round(cast(t.foreign_value as decimal(38, 2)) * fx.czk_per_unit, 2)
         end as decimal(18, 2)) as value_czk,
         case
             when t.value_excl_vat is not null then 'excl_vat'

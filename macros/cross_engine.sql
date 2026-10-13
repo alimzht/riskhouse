@@ -41,8 +41,30 @@
     {{ return(adapter.dispatch('strip_accents')(col)) }}
 {%- endmacro %}
 {% macro default__strip_accents(col) -%} strip_accents({{ col }}) {%- endmacro %}
+{# Spark has no strip_accents: translate the letters DuckDB's strip_accents removes in Czech, Slovak, Polish,
+   Hungarian and German addresses (found by comparing both engines: 'Gdańska' differed). Letters that are not an
+   accent on a base letter (ł, ß) are left alone, as DuckDB does. #}
 {% macro spark__strip_accents(col) -%}
-    translate({{ col }}, 'áäčďéěíĺľňóôöŕřšťúůüýžÁÄČĎÉĚÍĹĽŇÓÔÖŔŘŠŤÚŮÜÝŽ', 'aacdeeillnooorrstuuuyzAACDEEILLNOOORRSTUUUYZ')
+    translate({{ col }},
+      'áäčďéěíĺľňóôöŕřšťúůüýžąćęńśźżőűÁÄČĎÉĚÍĹĽŇÓÔÖŔŘŠŤÚŮÜÝŽĄĆĘŃŚŹŻŐŰ',
+      'aacdeeillnooorrstuuuyzacenszzouAACDEEILLNOOORRSTUUUYZACENSZZOU')
+{%- endmacro %}
+
+{# Integer division truncating toward zero, on whole numbers #}
+{% macro int_div(a, b) -%}
+    {{ return(adapter.dispatch('int_div')(a, b)) }}
+{%- endmacro %}
+{% macro default__int_div(a, b) -%} (({{ a }}) // ({{ b }})) {%- endmacro %}
+{% macro spark__int_div(a, b) -%} (({{ a }}) div ({{ b }})) {%- endmacro %}
+
+{# amount / divisor in CZK, rounded half away from zero to whole hellers (0.01), computed in integers so every
+   engine gives the same cents (DuckDB turns decimal / decimal into a float, Spark keeps a decimal).
+   divisor_hundredths: the divisor x 100 as a whole number, e.g. 121 for 1.21 #}
+{% macro divide_czk(amount, divisor_hundredths) -%}
+    {%- set hellers = 'cast(cast(' ~ amount ~ ' as decimal(38, 2)) * 100 as bigint)' -%}
+    cast(sign({{ hellers }})
+         * {{ int_div('abs(' ~ hellers ~ ') * 200 + ' ~ divisor_hundredths, 2 * divisor_hundredths) }}
+         * 0.01 as decimal(18, 2))
 {%- endmacro %}
 
 {# Sorted distinct list of values in a group #}

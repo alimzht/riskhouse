@@ -912,7 +912,7 @@ window.RISKHOUSE = {
    "url": "https://smlouvy.gov.cz/smlouva/39571625",
    "signed_date": "2025-04-22",
    "buyer_name": "Ředitelství silnic a dálnic s. p.",
-   "supplier": "Mott MacDonald CZ, spol. s r.o.",
+   "supplier": "MANIFOLD GROUP s.r.o.",
    "value_czk": "5834000.00",
    "flags": "R5 R6",
    "example_for": "R6"
