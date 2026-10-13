@@ -24,6 +24,7 @@ under_limit as (
     select distinct contract_id, buyer_ico, party_ico, signed_date, value_czk
     from base
     where party_ico is not null
+      and party_ico <> buyer_ico       -- the buyer listed among its own counterparties is not a supplier
       and value_czk <  tender_limit_czk
       and value_czk >= {{ var('split_min_share') }} * tender_limit_czk
 ),

@@ -100,7 +100,7 @@ with no known value never triggers them. R6 also needs a known signing date (T-V
 | R3 | **Company without a valid IČO** | The counterparty's IČO is missing, malformed, or fails the check digit (T-P02, T-P03). | Without a valid company ID the supplier cannot be identified or checked. | Natural persons (T-P01) and foreign suppliers (T-P04) | 8,452 |
 | R4 | **IČO unknown to the business register** | The IČO is valid (format and check digit), but neither ARES search nor the commercial register knows it (T-S03). | A well-formed ID that no register knows needs explaining. | Natural persons, foreign suppliers. IČOs with no ARES answer landed at all. | 412 |
 | R5 | **Value just under the tender limit** | `value_czk` ≥ `near_limit_share` (0.9) × `tender_limit_czk` **and** `value_czk` < `tender_limit_czk`. At or above the limit a tender is required, so the contract is not flagged. No value means no flag. Limits: `tender_limit_supplies_services` = 2,000,000 CZK, `tender_limit_construction` = 6,000,000 CZK, both excl. VAT (zákon 134/2016 Sb., the Czech public procurement act). | A price just below the limit avoids a public tender. One such contract is normal; many of them are a pattern worth a look. | Contracts with no known value | 1,335 |
-| R6 | **Possible contract splitting** | Same buyer **and** same supplier. Only "pieces" count: contracts worth at least `split_min_share` (0.2) × limit and below the limit. Within `split_window_days` (30) days either side of a piece's signing date, the pair has between `split_min_contracts` (2) and `split_max_contracts` (4) pieces, the piece itself included. Together these pieces exceed the tender limit. A contract that lists the same supplier twice counts once. | One purchase split into several contracts below the limit avoids a tender. | Contracts below 20 % of the limit (routine orders). Pairs with more than 4 pieces in the window (recurring call-off ordering). Contracts with no value, no signing date, or no supplier IČO. | 3,364 (was 65,624 before the redesign) |
+| R6 | **Possible contract splitting** | Same buyer **and** same supplier. Only "pieces" count: contracts worth at least `split_min_share` (0.2) × limit and below the limit. Within `split_window_days` (30) days either side of a piece's signing date, the pair has between `split_min_contracts` (2) and `split_max_contracts` (4) pieces, the piece itself included. Together these pieces exceed the tender limit. A contract that lists the same supplier twice counts once. | One purchase split into several contracts below the limit avoids a tender. | Contracts below 20 % of the limit (routine orders). Pairs with more than 4 pieces in the window (recurring call-off ordering). Contracts with no value, no signing date, or no supplier IČO. | 3,298 (was 65,624 before the redesign) |
 
 **Why R6 was redesigned.** The first version had no minimum piece size and no maximum piece count. It flagged
 65,624 rows, mostly hospitals' daily drug orders from wholesalers. These are routine call-off orders under
@@ -128,8 +128,8 @@ Hours saved = auto-cleared contracts × minutes per contract ÷ 60, shown as a r
 | Item | Formula | Value |
 |---|---|---|
 | Current contracts screened | count of distinct `contract_id` | **275,570** |
-| Contracts flagged for manual review | contracts with ≥ 1 row in `review` | **13,213 (4.8 %)** |
-| Auto-cleared contracts | screened − flagged | **262,357** |
+| Contracts flagged for manual review | contracts with ≥ 1 row in `review` | **13,162 (4.8 %)** |
+| Auto-cleared contracts | screened − flagged | **262,408** |
 | Hours saved, low | auto-cleared × 5 ÷ 60 | **≈ 21,900 h** |
 | Hours saved, high | auto-cleared × 15 ÷ 60 | **≈ 65,600 h** |
 

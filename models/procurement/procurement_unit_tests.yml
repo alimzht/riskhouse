@@ -107,6 +107,26 @@ unit_tests:
         - {contract_id: "8", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: true,  review_queue: review}
         - {contract_id: "9", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: true,  review_queue: review}
 
+  - name: screening_rule_r6_skips_buyer_listed_as_party
+    description: A buyer that appears among its own counterparties is not a supplier, so it cannot split a contract.
+    model: fct_contract_screening
+    given:
+      - input: ref('stg_contracts')
+        rows:
+          - {contract_id: "1", version_id: "1", signed_date: "2026-08-01", buyer_ico: "44444444", value_czk: 1200000, tender_limit_czk: 2000000}
+          - {contract_id: "2", version_id: "2", signed_date: "2026-08-05", buyer_ico: "44444444", value_czk: 1200000, tender_limit_czk: 2000000}
+      - input: ref('stg_contract_parties')
+        rows:
+          - {version_id: "1", party_seq: 1, party_ico: "44444444", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "2", party_seq: 1, party_ico: "44444444", ico_status: valid, is_natural_person: false, is_foreign: false}
+      - input: ref('stg_ares_companies')
+        rows:
+          - {ico: "44444444", found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: true}
+    expect:   # same pair, 2 pieces, 2.4 M > 2 M: would be R6 if the party were a real supplier
+      rows:
+        - {contract_id: "1", party_seq: 1, r6_split: false}
+        - {contract_id: "2", party_seq: 1, r6_split: false}
+
   - name: screening_rule_r6_counts_each_contract_once
     description: A contract listing the same supplier twice must not be counted twice towards the split total.
     model: fct_contract_screening
