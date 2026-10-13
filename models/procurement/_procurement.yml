@@ -1,0 +1,36 @@
+version: 2
+models:
+  - name: stg_contracts
+    description: Current version of each contract in Registr smluv, value in CZK excl. VAT.
+    columns:
+      - name: contract_id
+        tests: [unique, not_null]
+      - name: value_basis
+        tests:
+          - accepted_values:
+              arguments: {values: [excl_vat, incl_vat_estimated, foreign_currency, foreign_currency_no_rate, not_stated]}
+      - name: contract_type
+        tests:
+          - accepted_values: {arguments: {values: [construction, supplies_services]}}
+
+  - name: stg_contract_parties
+    columns:
+      - name: ico_status
+        tests:
+          - accepted_values: {arguments: {values: [missing, malformed, checksum_failed, valid]}}
+
+  - name: stg_suppliers
+    columns:
+      - name: ico
+        tests: [unique, not_null]
+
+  - name: fct_contract_screening
+    description: One row per contract x counterparty with risk flags R1-R6 and the review decision.
+    columns:
+      - name: contract_id
+        tests:
+          - not_null
+          - relationships: {arguments: {to: ref('stg_contracts'), field: contract_id}}
+      - name: review_queue
+        tests:
+          - accepted_values: {arguments: {values: [review, auto_clear]}}

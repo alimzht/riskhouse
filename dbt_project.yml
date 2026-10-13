@@ -1,0 +1,39 @@
+name: riskhouse
+version: "1.0.0"
+config-version: 2
+profile: riskhouse
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+vars:
+  landing_path: "data/landing"
+
+  # Procurement screening thresholds. Business rules, owned by the reviewing team, versioned here.
+  # Czech public procurement act (zákon 134/2016 Sb.): above these values (excl. VAT) a public tender is required.
+  tender_limit_supplies_services: 2000000
+  tender_limit_construction: 6000000
+  near_limit_share: 0.9          # R5: value within 90-100 % of the limit
+  new_company_days: 182          # R1: supplier founded less than ~6 months before signing
+  split_window_days: 30          # R6: same buyer + supplier within this many days
+
+  # "Why it matters" estimate: minutes a reviewer spends checking one contract by hand (a stated assumption)
+  review_minutes_low: 5
+  review_minutes_high: 15
+
+  # Motor: single claims above this are capped when pricing segments (large-claim threshold, EUR)
+  motor_large_claim_eur: 100000
+
+models:
+  riskhouse:
+    procurement:
+      bronze: {+materialized: view, +schema: bronze}
+      silver: {+materialized: table, +schema: silver}
+      gold: {+materialized: table, +schema: gold}
+    motor:
+      bronze: {+materialized: view, +schema: bronze}
+      silver: {+materialized: table, +schema: silver}
+      gold: {+materialized: table, +schema: gold}
+

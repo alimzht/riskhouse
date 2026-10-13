@@ -1,0 +1,18 @@
+# data is downloaded by ingest/, never committed (see README); the CI sample lives in tests/fixtures
+data/raw/
+data/landing/
+*.duckdb
+*.duckdb.wal
+target/
+dbt_packages/
+logs/
+.venv/
+__pycache__/
+.user.yml
+_reuse/
+spark-warehouse/
+metastore_db/
+powerbi/*.csv
+powerbi/*.pbix
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
