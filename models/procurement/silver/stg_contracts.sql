@@ -40,7 +40,7 @@ dated as (
     select
         *,
         -- T-V06 a contract is signed before it is published, and not before 2000: anything else is a typo
-        -- (seen: year 0001, 2926) -> unknown, so it cannot distort the date rules R1/R6
+        -- (seen: year 0001, 2926) -> unknown, so it cannot distort the date rules R1/R2/R6
         case when signed_date_raw between date '2000-01-01' and published_date then signed_date_raw end as signed_date,
         signed_date_raw is not null
           and not (signed_date_raw between date '2000-01-01' and published_date)                       as dq_implausible_signed_date

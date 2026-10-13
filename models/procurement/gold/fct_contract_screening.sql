@@ -45,7 +45,7 @@ flags as (
         -- R1 supplier founded less than ~6 months before signing (or after it). Public bodies have no founding date.
         coalesce({{ days_between('b.founded_date', 'b.signed_date') }} < {{ var('new_company_days') }}
                  and not b.supplier_is_public_body, false)                                       as r1_new_company,
-        -- R2 supplier dissolved before signing, or in liquidation
+        -- R2 supplier dissolved on or before the signing date, or in liquidation
         coalesce(b.dissolved_date <= b.signed_date, false) or coalesce(b.in_liquidation, false)  as r2_dissolved,
         -- R3 a company without a valid IČO: missing, malformed or failing the check digit
         b.expects_czech_ico and b.ico_status <> 'valid'                                          as r3_invalid_ico,
