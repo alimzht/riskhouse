@@ -8,6 +8,7 @@ sources:
       - name: contracts
       - name: contract_parties
       - name: ares_raw
+      - name: ares_deleted
       - name: cnb_rates
       - name: motor_policies
       - name: motor_claims

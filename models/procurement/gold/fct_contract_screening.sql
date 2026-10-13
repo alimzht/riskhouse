@@ -17,17 +17,21 @@ with base as (
 ),
 -- R6 contract splitting: same buyer and supplier, other contracts within the window, each below the limit
 -- but together above it
+-- one row per contract and supplier: a contract listing the same supplier twice must count once
+under_limit as (
+    select distinct contract_id, buyer_ico, party_ico, signed_date, value_czk
+    from base
+    where party_ico is not null and value_czk < tender_limit_czk
+),
 pairs as (
-    select a.contract_id, a.party_seq,
-           count(distinct b.contract_id)  as pair_contracts_in_window,
-           sum(b.value_czk)               as pair_value_in_window
-    from base a
-    join base b
+    select a.contract_id, a.party_ico,
+           count(*)          as pair_contracts_in_window,
+           sum(b.value_czk)  as pair_value_in_window
+    from under_limit a
+    join under_limit b
       on b.buyer_ico = a.buyer_ico and b.party_ico = a.party_ico
      and abs({{ days_between('a.signed_date', 'b.signed_date') }}) <= {{ var('split_window_days') }}
-     and b.value_czk < b.tender_limit_czk
-    where a.party_ico is not null and a.value_czk < a.tender_limit_czk
-    group by a.contract_id, a.party_seq
+    group by a.contract_id, a.party_ico
 ),
 flags as (
     select
@@ -49,7 +53,7 @@ flags as (
         coalesce(pr.pair_contracts_in_window >= 2 and pr.pair_value_in_window > b.tender_limit_czk, false)
                                                                                                  as r6_split
     from base b
-    left join pairs pr on pr.contract_id = b.contract_id and pr.party_seq = b.party_seq
+    left join pairs pr on pr.contract_id = b.contract_id and pr.party_ico = b.party_ico
 )
 select
     *,

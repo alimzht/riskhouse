@@ -18,7 +18,9 @@ URL = "https://www.cnb.cz/cs/financni-trhy/devizovy-trh/kurzy-devizoveho-trhu/ku
 
 
 def rows_for(year: str):
-    text = requests.get(URL.format(year=year), timeout=60).text
+    response = requests.get(URL.format(year=year), timeout=60)
+    response.raise_for_status()
+    text = response.text
     header = None
     for line in text.splitlines():
         cells = line.strip().split("|")
@@ -33,6 +35,8 @@ def rows_for(year: str):
 if __name__ == "__main__":
     years = sys.argv[1:] or ["2026"]
     rows = [r for y in years for r in rows_for(y)]
+    if not rows:   # an error page parses to nothing: fail loudly instead of landing an empty table
+        raise SystemExit(f"no exchange rates parsed for {years}")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(pa.table({k: pa.array([r[k] for r in rows], pa.string())
                              for k in ["rate_date", "unit", "currency", "rate"]}), OUT)

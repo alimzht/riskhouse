@@ -73,7 +73,8 @@ def text_at(element, path: str):
 
 def iter_records(dump: Path):
     """Yield each <zaznam> element, freeing it afterwards so a 130 MB dump never sits in memory."""
-    for _, record in etree.iterparse(str(dump), events=("end",), tag="{*}zaznam"):
+    for _, record in etree.iterparse(str(dump), events=("end",), tag="{*}zaznam",
+                                     resolve_entities=False, no_network=True):  # downloaded file: no XXE
         yield record
         record.clear()
         while record.getprevious() is not None:
