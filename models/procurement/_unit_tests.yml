@@ -1,0 +1,139 @@
+version: 2
+# Unit tests: small hand-made inputs -> expected output, one case per rule. Run: dbt test --select test_type:unit
+unit_tests:
+
+  - name: contracts_cleaning_rules
+    description: T-V01 latest version, T-V02 withdrawn, T-V03/T-V04 value basis, T-V05 type, T-V06 impossible dates.
+    model: stg_contracts
+    given:
+      - input: ref('brz_contracts')
+        rows:
+          # T-V01: two versions of contract 1 -> keep version 11
+          - {contract_id: "1", version_id: "10", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "2026-07-01", value_excl_vat: "100000", subject: "Dodávka papíru"}
+          - {contract_id: "1", version_id: "11", is_valid_record: "1", published_at: "2026-07-12T08:00:00+02:00", signed_date: "2026-07-01", value_excl_vat: "120000", subject: "Dodávka papíru"}
+          # T-V02: latest version withdrawn -> contract 2 disappears
+          - {contract_id: "2", version_id: "20", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "2026-07-01", value_excl_vat: "5000", subject: "Služby"}
+          - {contract_id: "2", version_id: "21", is_valid_record: "0", published_at: "2026-07-11T08:00:00+02:00", signed_date: "2026-07-01", value_excl_vat: "5000", subject: "Služby"}
+          # T-V03: only incl. VAT -> / 1.21, estimated
+          - {contract_id: "3", version_id: "30", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "2026-07-02", value_incl_vat: "121000", subject: "Služby úklidu"}
+          # T-V04: EUR at the ČNB rate of the last trading day before signing (Sunday 5 July -> Friday 3 July)
+          - {contract_id: "4", version_id: "40", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "2026-07-05", foreign_value: "1000", foreign_currency: "eur", subject: "Licence"}
+          # no value at all
+          - {contract_id: "5", version_id: "50", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "2026-07-02", subject: "Darovací smlouva"}
+          # T-V05 construction from the subject; T-V06 year 0001 is a typo -> unknown date
+          - {contract_id: "6", version_id: "60", is_valid_record: "1", published_at: "2026-07-10T08:00:00+02:00", signed_date: "0001-01-01", value_excl_vat: "1900000", subject: "Rekonstrukce chodníku"}
+      - input: ref('stg_fx_rates')
+        rows:
+          - {rate_date: "2026-07-03", currency: "EUR", czk_per_unit: 25.0}
+          - {rate_date: "2026-07-06", currency: "EUR", czk_per_unit: 99.0}
+    expect:
+      rows:
+        - {contract_id: "1", version_id: "11", value_czk: 120000, value_basis: excl_vat, contract_type: supplies_services, dq_implausible_signed_date: false}
+        - {contract_id: "3", version_id: "30", value_czk: 100000, value_basis: incl_vat_estimated, contract_type: supplies_services, dq_implausible_signed_date: false}
+        - {contract_id: "4", version_id: "40", value_czk: 25000, value_basis: foreign_currency, contract_type: supplies_services, dq_implausible_signed_date: false}
+        - {contract_id: "5", version_id: "50", value_czk: null, value_basis: not_stated, contract_type: supplies_services, dq_implausible_signed_date: false}
+        - {contract_id: "6", version_id: "60", value_czk: 1900000, value_basis: excl_vat, contract_type: construction, dq_implausible_signed_date: true}
+
+  - name: party_ico_rules
+    description: T-P01 natural person, T-P02 zero padding, T-P03 check digit, T-P04 foreign address.
+    model: stg_contract_parties
+    given:
+      - input: ref('brz_contract_parties')
+        rows:
+          - {version_id: "11", party_seq: "1", party_ico: "27082440", party_name: "Alza.cz a.s.", party_address: "Praha"}          # valid
+          - {version_id: "11", party_seq: "2", party_ico: "6947", party_name: "Ministerstvo financí", party_address: "Praha"}    # padded -> 00006947, valid
+          - {version_id: "11", party_seq: "3", party_ico: "27082441", party_name: "Typo s.r.o.", party_address: "Brno"}          # wrong check digit
+          - {version_id: "11", party_seq: "4", party_ico: "CZ123", party_name: "Divná s.r.o.", party_address: "Brno"}            # malformed
+          - {version_id: "11", party_seq: "5", party_name: "Jan Novák", party_kind: "FO", party_address: "Brno"}                 # individual, no IČO
+          - {version_id: "11", party_seq: "6", party_name: "Microsoft Ireland Operations Ltd", party_address: "Dublin, Ireland"}  # foreign
+      - input: ref('stg_contracts')
+        rows:
+          - {version_id: "11"}
+    expect:
+      rows:
+        - {party_seq: 1, party_ico: "27082440", ico_status: valid, is_natural_person: false, is_foreign: false}
+        - {party_seq: 2, party_ico: "00006947", ico_status: valid, is_natural_person: false, is_foreign: false}
+        - {party_seq: 3, party_ico: "27082441", ico_status: checksum_failed, is_natural_person: false, is_foreign: false}
+        - {party_seq: 4, party_ico: null, ico_status: malformed, is_natural_person: false, is_foreign: false}
+        - {party_seq: 5, party_ico: null, ico_status: missing, is_natural_person: true, is_foreign: false}
+        - {party_seq: 6, party_ico: null, ico_status: missing, is_natural_person: false, is_foreign: true}
+
+  - name: screening_rules_r1_r4_r6
+    description: One case per rule, plus a clean contract that must be auto-cleared.
+    model: fct_contract_screening
+    given:
+      - input: ref('stg_contracts')
+        rows:
+          - {contract_id: "1", version_id: "1", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 50000, tender_limit_czk: 2000000}
+          - {contract_id: "2", version_id: "2", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 50000, tender_limit_czk: 2000000}
+          - {contract_id: "3", version_id: "3", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 50000, tender_limit_czk: 2000000}
+          - {contract_id: "4", version_id: "4", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 50000, tender_limit_czk: 2000000}
+          - {contract_id: "5", version_id: "5", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 50000, tender_limit_czk: 2000000}
+          - {contract_id: "6", version_id: "6", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 50000, tender_limit_czk: 2000000}
+          # R6: buyer 9 + supplier S, three contracts in 20 days, each < 2 M, together 2.4 M
+          - {contract_id: "7", version_id: "7", signed_date: "2026-08-01", buyer_ico: "00000009", value_czk: 1000000, tender_limit_czk: 2000000}
+          - {contract_id: "8", version_id: "8", signed_date: "2026-08-10", buyer_ico: "00000009", value_czk: 900000, tender_limit_czk: 2000000}
+          - {contract_id: "9", version_id: "9", signed_date: "2026-08-20", buyer_ico: "00000009", value_czk: 500000, tender_limit_czk: 2000000}
+      - input: ref('stg_contract_parties')
+        rows:
+          - {version_id: "1", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}  # clean
+          - {version_id: "2", party_seq: 1, party_ico: "22222222", ico_status: valid, is_natural_person: false, is_foreign: false}  # new company
+          - {version_id: "3", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}  # dissolved
+          - {version_id: "4", party_seq: 1, party_ico: null, ico_status: missing, is_natural_person: false, is_foreign: false}      # company, no IČO
+          - {version_id: "4", party_seq: 2, party_ico: null, ico_status: missing, is_natural_person: true, is_foreign: false}       # individual: fine
+          - {version_id: "5", party_seq: 1, party_ico: "55555555", ico_status: valid, is_natural_person: false, is_foreign: false}  # not in ARES
+          - {version_id: "6", party_seq: 1, party_ico: "66666666", ico_status: valid, is_natural_person: false, is_foreign: false}  # public body
+          - {version_id: "7", party_seq: 1, party_ico: "77777777", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "8", party_seq: 1, party_ico: "77777777", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "9", party_seq: 1, party_ico: "77777777", ico_status: valid, is_natural_person: false, is_foreign: false}
+      - input: ref('stg_suppliers')
+        rows:
+          - {ico: "11111111", found: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+          - {ico: "22222222", found: true, founded_date: "2026-07-01", in_liquidation: false, is_public_body: false}
+          - {ico: "33333333", found: true, founded_date: "2010-01-01", dissolved_date: "2026-03-01", in_liquidation: false, is_public_body: false}
+          - {ico: "55555555", found: false, is_public_body: false}
+          - {ico: "66666666", found: true, founded_date: null, in_liquidation: false, is_public_body: true}
+          - {ico: "77777777", found: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+    expect:
+      rows:
+        - {contract_id: "1", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: false, review_queue: auto_clear}
+        - {contract_id: "2", party_seq: 1, r1_new_company: true,  r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: false, review_queue: review}
+        - {contract_id: "3", party_seq: 1, r1_new_company: false, r2_dissolved: true,  r3_invalid_ico: false, r4_not_in_register: false, r6_split: false, review_queue: review}
+        - {contract_id: "4", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: true,  r4_not_in_register: false, r6_split: false, review_queue: review}
+        - {contract_id: "4", party_seq: 2, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: false, review_queue: auto_clear}
+        - {contract_id: "5", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: true,  r6_split: false, review_queue: review}
+        - {contract_id: "6", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: false, review_queue: auto_clear}
+        - {contract_id: "7", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: true,  review_queue: review}
+        - {contract_id: "8", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: true,  review_queue: review}
+        - {contract_id: "9", party_seq: 1, r1_new_company: false, r2_dissolved: false, r3_invalid_ico: false, r4_not_in_register: false, r6_split: true,  review_queue: review}
+
+  # CHECKPOINT 1 spec. Switched off until R5 is written: set enabled: true, then make it pass.
+  - name: screening_rule_r5_near_limit
+    description: R5 fires at 90-100 % of the limit, not at the limit itself, and never without a value.
+    model: fct_contract_screening
+    config: {enabled: false}
+    given:
+      - input: ref('stg_contracts')
+        rows:
+          - {contract_id: "1", version_id: "1", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 1950000, tender_limit_czk: 2000000}   # just under
+          - {contract_id: "2", version_id: "2", signed_date: "2026-08-01", buyer_ico: "00000002", value_czk: 2000000, tender_limit_czk: 2000000}   # at the limit: tender required
+          - {contract_id: "3", version_id: "3", signed_date: "2026-08-01", buyer_ico: "00000003", value_czk: 1700000, tender_limit_czk: 2000000}   # 85 %: below the band
+          - {contract_id: "4", version_id: "4", signed_date: "2026-08-01", buyer_ico: "00000004", value_czk: 5500000, tender_limit_czk: 6000000}   # construction, just under
+          - {contract_id: "5", version_id: "5", signed_date: "2026-08-01", buyer_ico: "00000005", value_czk: null, tender_limit_czk: 2000000}      # no value
+      - input: ref('stg_contract_parties')
+        rows:
+          - {version_id: "1", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "2", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "3", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "4", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "5", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+      - input: ref('stg_suppliers')
+        rows:
+          - {ico: "11111111", found: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+    expect:
+      rows:
+        - {contract_id: "1", r5_near_limit: true}
+        - {contract_id: "2", r5_near_limit: false}
+        - {contract_id: "3", r5_near_limit: false}
+        - {contract_id: "4", r5_near_limit: true}
+        - {contract_id: "5", r5_near_limit: false}

@@ -34,3 +34,10 @@ models:
       - name: review_queue
         tests:
           - accepted_values: {arguments: {values: [review, auto_clear]}}
+      # a flag must be true or false, never unknown: a NULL here silently hides a contract from review
+      - {name: r1_new_company, tests: [not_null]}
+      - {name: r2_dissolved, tests: [not_null]}
+      - {name: r3_invalid_ico, tests: [not_null]}
+      - {name: r4_not_in_register, tests: [not_null]}
+      - {name: r5_near_limit, tests: [not_null]}
+      - {name: r6_split, tests: [not_null]}

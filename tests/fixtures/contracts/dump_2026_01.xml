@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dump xmlns="http://portal.gov.cz/rejstriky/ISRS/1.2/">
+  <mesic>1</mesic><rok>2026</rok>
+  <zaznam>
+    <identifikator><idSmlouvy>100</idSmlouvy><idVerze>1001</idVerze></identifikator>
+    <odkaz>https://smlouvy.gov.cz/smlouva/1001</odkaz>
+    <casZverejneni>2026-01-05T10:00:00+01:00</casZverejneni>
+    <smlouva>
+      <subjekt><nazev>Město Příklad</nazev><ico>00000001</ico><adresa>Náměstí 1, Příklad</adresa></subjekt>
+      <smluvniStrana><nazev>Dodavatel s.r.o.</nazev><ico>27082440</ico><adresa>Praha</adresa></smluvniStrana>
+      <smluvniStrana><nazev>Jan Novák</nazev><identifikace>FO</identifikace></smluvniStrana>
+      <predmet>Rekonstrukce chodníku</predmet>
+      <datumUzavreni>2026-01-02</datumUzavreni>
+      <hodnotaBezDph>1950000</hodnotaBezDph>
+    </smlouva>
+    <platnyZaznam>1</platnyZaznam>
+  </zaznam>
+  <zaznam>
+    <identifikator><idSmlouvy>200</idSmlouvy><idVerze>2001</idVerze></identifikator>
+    <odkaz>https://smlouvy.gov.cz/smlouva/2001</odkaz>
+    <casZverejneni>2026-01-06T10:00:00+01:00</casZverejneni>
+    <smlouva>
+      <subjekt><nazev>Nemocnice</nazev><ico>00000002</ico></subjekt>
+      <smluvniStrana><nazev>Foreign Ltd</nazev><adresa>Dublin, Ireland</adresa></smluvniStrana>
+      <predmet>Licence</predmet>
+      <datumUzavreni>2026-01-03</datumUzavreni>
+      <ciziMena><hodnota>1000</hodnota><mena>EUR</mena></ciziMena>
+    </smlouva>
+    <platnyZaznam>1</platnyZaznam>
+  </zaznam>
+</dump>

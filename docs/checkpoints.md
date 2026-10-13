@@ -26,7 +26,10 @@ Think about: should a contract exactly at the limit count? What happens when `va
 ```bash
 dbt build --profiles-dir . --select fct_contract_screening+
 ```
-then in `python sql_ui.py` or DuckDB: `select contract_type, count(*) from gold.fct_contract_screening where r5_near_limit group by 1`
+then count the hits:
+```bash
+.venv\Scripts\python -c "import duckdb; print(duckdb.connect('riskhouse.duckdb', read_only=True).sql('select contract_type, count(*) from gold.fct_contract_screening where r5_near_limit group by 1'))"
+```
 
 **Be ready to say:** why 90 %, why excl. VAT, and why the threshold is a `var` and not a number in the SQL.
 
