@@ -15,13 +15,17 @@ with base as (
     join {{ ref('stg_contract_parties') }} p on p.version_id = c.version_id
     left join {{ ref('stg_ares_companies') }} s on s.ico = p.party_ico
 ),
--- R6 contract splitting: same buyer and supplier, other contracts within the window, each below the limit
--- but together above it
+-- R6 contract splitting: same buyer and supplier, a few sizeable contracts within the window, each below the
+-- limit but together above it
+-- a "piece" is a contract worth at least split_min_share of the limit and below it: small routine orders
+-- (e.g. daily drug call-offs) are not pieces of a split tender
 -- one row per contract and supplier: a contract listing the same supplier twice must count once
 under_limit as (
     select distinct contract_id, buyer_ico, party_ico, signed_date, value_czk
     from base
-    where party_ico is not null and value_czk < tender_limit_czk
+    where party_ico is not null
+      and value_czk <  tender_limit_czk
+      and value_czk >= {{ var('split_min_share') }} * tender_limit_czk
 ),
 pairs as (
     select a.contract_id, a.party_ico,
@@ -47,11 +51,14 @@ flags as (
         b.expects_czech_ico and b.ico_status <> 'valid'                                          as r3_invalid_ico,
         -- R4 valid-looking IČO that the business register does not know
         b.expects_czech_ico and b.ico_status = 'valid' and coalesce(not b.in_register, false)    as r4_not_in_register,
-        -- R5 value just under the tender limit: CHECKPOINT 1, written by Tim (see docs/checkpoints.md)
-        false                                                                                    as r5_near_limit,
-        -- R6 several contracts with the same buyer within the window, each under the limit, together over it
-        coalesce(pr.pair_contracts_in_window >= 2 and pr.pair_value_in_window > b.tender_limit_czk, false)
-                                                                                                 as r6_split
+        -- R5 value just under the tender limit: the contract avoids a public tender by a small margin.
+        -- At the limit itself a tender is required, so it is not flagged; no value means no flag.
+        coalesce(b.value_czk >= {{ var('near_limit_share') }} * b.tender_limit_czk
+                 and b.value_czk < b.tender_limit_czk, false)                                    as r5_near_limit,
+        -- R6 a few sizeable pieces with the same buyer and supplier within the window, each under the limit,
+        -- together over it. More pieces than split_max_contracts look like routine recurring ordering, not a split.
+        coalesce(pr.pair_contracts_in_window between {{ var('split_min_contracts') }} and {{ var('split_max_contracts') }}
+                 and pr.pair_value_in_window > b.tender_limit_czk, false)                        as r6_split
     from base b
     left join pairs pr on pr.contract_id = b.contract_id and pr.party_ico = b.party_ico
 )

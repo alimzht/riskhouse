@@ -129,11 +129,74 @@ unit_tests:
         - {contract_id: "2", party_seq: 1, r6_split: false}
         - {contract_id: "2", party_seq: 2, r6_split: false}
 
-  # CHECKPOINT 1 spec. Switched off until R5 is written: set enabled: true, then make it pass.
+  - name: screening_rule_r6_ignores_routine_orders
+    description: R6 does not flag recurring ordering (more than split_max_contracts pieces) or small orders below split_min_share.
+    model: fct_contract_screening
+    given:
+      - input: ref('stg_contracts')
+        rows:
+          # buyer 1 + supplier A: five contracts of 0.5 M within 30 days -> 5 pieces > max 4, routine ordering
+          - {contract_id: "11", version_id: "11", signed_date: "2026-08-01", buyer_ico: "00000001", value_czk: 500000, tender_limit_czk: 2000000}
+          - {contract_id: "12", version_id: "12", signed_date: "2026-08-05", buyer_ico: "00000001", value_czk: 500000, tender_limit_czk: 2000000}
+          - {contract_id: "13", version_id: "13", signed_date: "2026-08-10", buyer_ico: "00000001", value_czk: 500000, tender_limit_czk: 2000000}
+          - {contract_id: "14", version_id: "14", signed_date: "2026-08-15", buyer_ico: "00000001", value_czk: 500000, tender_limit_czk: 2000000}
+          - {contract_id: "15", version_id: "15", signed_date: "2026-08-20", buyer_ico: "00000001", value_czk: 500000, tender_limit_czk: 2000000}
+          # buyer 2 + supplier B: 0.3 M is 15 % of the limit -> not a piece; the two pieces total 1.8 M <= 2 M
+          - {contract_id: "21", version_id: "21", signed_date: "2026-08-01", buyer_ico: "00000002", value_czk: 900000, tender_limit_czk: 2000000}
+          - {contract_id: "22", version_id: "22", signed_date: "2026-08-10", buyer_ico: "00000002", value_czk: 900000, tender_limit_czk: 2000000}
+          - {contract_id: "23", version_id: "23", signed_date: "2026-08-20", buyer_ico: "00000002", value_czk: 300000, tender_limit_czk: 2000000}
+          # buyer 3 + supplier C: one piece of 1.5 M plus six small orders of 0.1 M (2.1 M in total) -> only one piece
+          - {contract_id: "31", version_id: "31", signed_date: "2026-08-01", buyer_ico: "00000003", value_czk: 1500000, tender_limit_czk: 2000000}
+          - {contract_id: "32", version_id: "32", signed_date: "2026-08-02", buyer_ico: "00000003", value_czk: 100000, tender_limit_czk: 2000000}
+          - {contract_id: "33", version_id: "33", signed_date: "2026-08-03", buyer_ico: "00000003", value_czk: 100000, tender_limit_czk: 2000000}
+          - {contract_id: "34", version_id: "34", signed_date: "2026-08-04", buyer_ico: "00000003", value_czk: 100000, tender_limit_czk: 2000000}
+          - {contract_id: "35", version_id: "35", signed_date: "2026-08-05", buyer_ico: "00000003", value_czk: 100000, tender_limit_czk: 2000000}
+          - {contract_id: "36", version_id: "36", signed_date: "2026-08-06", buyer_ico: "00000003", value_czk: 100000, tender_limit_czk: 2000000}
+          - {contract_id: "37", version_id: "37", signed_date: "2026-08-07", buyer_ico: "00000003", value_czk: 100000, tender_limit_czk: 2000000}
+      - input: ref('stg_contract_parties')
+        rows:
+          - {version_id: "11", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "12", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "13", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "14", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "15", party_seq: 1, party_ico: "11111111", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "21", party_seq: 1, party_ico: "22222222", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "22", party_seq: 1, party_ico: "22222222", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "23", party_seq: 1, party_ico: "22222222", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "31", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "32", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "33", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "34", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "35", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "36", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+          - {version_id: "37", party_seq: 1, party_ico: "33333333", ico_status: valid, is_natural_person: false, is_foreign: false}
+      - input: ref('stg_ares_companies')
+        rows:
+          - {ico: "11111111", found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+          - {ico: "22222222", found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+          - {ico: "33333333", found_in_ares: true, founded_date: "2010-01-01", in_liquidation: false, is_public_body: false}
+    expect:
+      rows:
+        - {contract_id: "11", r6_split: false}
+        - {contract_id: "12", r6_split: false}
+        - {contract_id: "13", r6_split: false}
+        - {contract_id: "14", r6_split: false}
+        - {contract_id: "15", r6_split: false}
+        - {contract_id: "21", r6_split: false}
+        - {contract_id: "22", r6_split: false}
+        - {contract_id: "23", r6_split: false}
+        - {contract_id: "31", r6_split: false}
+        - {contract_id: "32", r6_split: false}
+        - {contract_id: "33", r6_split: false}
+        - {contract_id: "34", r6_split: false}
+        - {contract_id: "35", r6_split: false}
+        - {contract_id: "36", r6_split: false}
+        - {contract_id: "37", r6_split: false}
+
+  # R5 is flagged for manual review at 90-100 % of the tender limit (below the limit, never at it, never without a value).
   - name: screening_rule_r5_near_limit
     description: R5 fires at 90-100 % of the limit, not at the limit itself, and never without a value.
     model: fct_contract_screening
-    config: {enabled: false}
     given:
       - input: ref('stg_contracts')
         rows:

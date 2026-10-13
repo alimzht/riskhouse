@@ -19,6 +19,9 @@ vars:
   near_limit_share: 0.9          # R5: value within 90-100 % of the limit
   new_company_days: 182          # R1: supplier founded less than ~6 months before signing
   split_window_days: 30          # R6: same buyer + supplier within this many days
+  split_min_share: 0.2           # R6: only contracts worth >= 20 % of the limit count as pieces; small orders are routine
+  split_min_contracts: 2         # R6: a split needs at least two pieces
+  split_max_contracts: 4         # R6: more pieces than this in the window is recurring ordering (call-offs), not a split
 
   # "Why it matters" estimate: minutes a reviewer spends checking one contract by hand (a stated assumption)
   review_minutes_low: 5
