@@ -99,6 +99,15 @@ Raw data is never committed; the pipeline downloads it from the official open-da
 - **Security.** The XML parser refuses external entities and network access; the dashboard renders data as text
   only; no secrets in the repository.
 
+## Related work
+
+Screening Registr smluv is not a new idea, and this project does not claim it is.
+[Hlídač státu](https://www.hlidacstatu.cz/) monitors the register and flags similar warning signs, and
+[zIndex](https://www.zindex.cz/) by Datlab rates how transparent public buyers' procurement is; red-flag
+indicators for procurement are an established method in anti-corruption work. riskhouse rebuilds this kind of
+screening end to end the way a client project would be delivered: documented and unit-tested rules, a
+data-quality record of every correction, and one pipeline that gives identical results on DuckDB and Databricks.
+
 ## Known limitations
 
 - Construction contracts are recognised by keywords in the subject (the register has no type field).
