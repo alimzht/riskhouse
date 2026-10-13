@@ -23,7 +23,7 @@
      'kept, excluded from value rules R5/R6'),
   ('contracts', 'classified as construction from the subject text',
      "(select count(*) from " ~ ref('stg_contracts') ~ " where contract_type = 'construction')",
-     'tender limit ' ~ var('tender_limit_construction') ~ ' CZK instead of ' ~ var('tender_limit_supplies_services') ~ ' (T-V05)'),
+     'tender limit ' ~ '{:,}'.format(var('tender_limit_construction')) ~ ' CZK instead of ' ~ '{:,}'.format(var('tender_limit_supplies_services')) ~ ' (T-V05)'),
   ('counterparties', 'natural person (no IČO expected)',
      "(select count(*) from " ~ ref('stg_contract_parties') ~ " where is_natural_person)",
      'excluded from IČO rules R3-R4 (T-P01)'),

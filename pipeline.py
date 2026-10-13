@@ -1,9 +1,10 @@
 """One entry point for the whole pipeline, the same on Windows, macOS and Linux.
 
-    python pipeline.py all          download -> land -> build -> test (first run: ~30 min, mostly ARES lookups)
+    python pipeline.py all          download -> land -> build -> dashboard (first run: ~30 min, mostly ARES lookups)
     python pipeline.py download     raw files: contract dumps, ČNB rates, motor portfolio
     python pipeline.py land         raw -> data/landing: parse contracts, look suppliers up in ARES
     python pipeline.py build        dbt build: bronze -> silver -> gold, with data and unit tests
+    python pipeline.py dashboard    export the dashboard data (dashboard/index.html opens without a server)
     python pipeline.py test         pytest (landing code) + dbt unit tests (rules); needs one `build` first,
                                     because dbt unit tests read the column types of the upstream tables
 
@@ -48,13 +49,17 @@ def build():
     dbt("build")
 
 
+def dashboard():
+    python("dashboard/export_dashboard_data.py")
+
+
 def test():
     run(sys.executable, "-m", "pytest", "-q", "tests")
     dbt("test", "--select", "test_type:unit")
 
 
-STEPS = {"download": [download], "land": [land], "build": [build], "test": [test],
-         "all": [download, land, build]}
+STEPS = {"download": [download], "land": [land], "build": [build], "dashboard": [dashboard], "test": [test],
+         "all": [download, land, build, dashboard]}
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in STEPS:
