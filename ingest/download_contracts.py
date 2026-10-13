@@ -12,13 +12,13 @@ import requests
 
 from paths import RAW_CONTRACTS
 
-RAW = RAW_CONTRACTS
+
 URL = "https://data.smlouvy.gov.cz/dump_{y}_{m}.xml"
 
 
 def download(month: str, attempts: int = 5):
     y, m = month.split("-")
-    target = RAW / f"dump_{y}_{m}.xml"
+    target = RAW_CONTRACTS / f"dump_{y}_{m}.xml"
     if target.exists() and target.stat().st_size > 0:
         print(f"{target.name}: already there")
         return
@@ -40,6 +40,6 @@ def download(month: str, attempts: int = 5):
 
 
 if __name__ == "__main__":
-    RAW.mkdir(parents=True, exist_ok=True)
+    RAW_CONTRACTS.mkdir(parents=True, exist_ok=True)
     for month in sys.argv[1:] or ["2026-07", "2026-08", "2026-09"]:
         download(month)

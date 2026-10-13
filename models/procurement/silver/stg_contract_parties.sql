@@ -20,15 +20,15 @@ select
     is_natural_person,
     is_recipient,
     -- T-P02 IČO is 8 digits; published without leading zeros it is padded ('6947' -> '00006947')
-    case when {{ regex_full_match('ico_raw', '^[0-9]{1,8}$') }} then lpad(ico_raw, 8, '0') end   as party_ico,
+    case when {{ regex_contains('ico_raw', '^[0-9]{1,8}$') }} then lpad(ico_raw, 8, '0') end   as party_ico,
     case
         when ico_raw = ''                                          then 'missing'
-        when not {{ regex_full_match('ico_raw', '^[0-9]{1,8}$') }} then 'malformed'
+        when not {{ regex_contains('ico_raw', '^[0-9]{1,8}$') }} then 'malformed'
         when not {{ ico_checksum_ok("lpad(ico_raw, 8, '0')") }}    then 'checksum_failed'   -- T-P03
         else 'valid'
     end                                                                                          as ico_status,
     -- T-P04 foreign suppliers legitimately have no Czech IČO; recognised by the country in their address
-    {{ regex_full_match(strip_accents("lower(coalesce(party_address, ''))"),
+    {{ regex_contains(strip_accents("lower(coalesce(party_address, ''))"),
        'slovak|slovensk|nemecko|deutschland|germany|rakousko|austria|osterreich|polsk|poland|irsko|ireland|'
        ~ 'nizozemsk|netherlands|usa|united states|united kingdom|velka britanie|francie|france|madarsk|hungary|'
        ~ 'svycarsk|switzerland|schweiz|belgi|lucembursk|luxembourg|italie|italy|spanelsk|spain|dansk|denmark|svedsk|sweden') }}

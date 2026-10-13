@@ -15,8 +15,6 @@ import requests
 
 from paths import LANDING, RAW_MOTOR
 
-RAW = RAW_MOTOR
-OUT = LANDING
 FILES = {  # OpenML file id -> (name, landing table)
     "20649148": ("freMTPL2freq", "motor_policies"),
     "20649149": ("freMTPL2sev", "motor_claims"),
@@ -42,14 +40,14 @@ def arff_to_table(path: Path) -> pa.Table:
 
 
 if __name__ == "__main__":
-    RAW.mkdir(parents=True, exist_ok=True)
-    OUT.mkdir(parents=True, exist_ok=True)
+    RAW_MOTOR.mkdir(parents=True, exist_ok=True)
+    LANDING.mkdir(parents=True, exist_ok=True)
     for file_id, (name, table) in FILES.items():
-        target = RAW / f"{name}.arff"
+        target = RAW_MOTOR / f"{name}.arff"
         if not target.exists():
             r = requests.get(f"https://openml.org/data/v1/download/{file_id}/{name}.arff", timeout=300)
             r.raise_for_status()
             target.write_bytes(r.content)
         t = arff_to_table(target)
-        pq.write_table(t, OUT / f"{table}.parquet")
+        pq.write_table(t, LANDING / f"{table}.parquet")
         print(f"{table}.parquet: {t.num_rows:,} rows, columns {t.column_names}")

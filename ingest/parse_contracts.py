@@ -1,9 +1,10 @@
 """Flatten Registr smluv (contract register) XML dumps into two landing tables, every value kept as text.
 
-    python ingest/parse_contracts.py            # all data/raw/contracts/dump_*.xml
+    python ingest/parse_contracts.py [dump_folder] [output_folder]
 
-data/landing/contracts.parquet          one row per published record (a contract *version*)
-data/landing/contract_parties.parquet   one row per counterparty (smluvniStrana) of that version
+Defaults: data/raw/contracts -> data/landing. Writes
+    contracts.parquet          one row per published record (a contract *version*)
+    contract_parties.parquet   one row per counterparty (smluvniStrana) of that version
 
 Nothing is cleaned here: versions, VAT, currencies and missing IDs are handled in dbt, where every rule
 is documented and tested. Dumps are streamed, so memory stays flat whatever the month size.
@@ -16,9 +17,6 @@ import pyarrow.parquet as pq
 from lxml import etree
 
 from paths import LANDING, RAW_CONTRACTS
-
-RAW = RAW_CONTRACTS
-OUT = LANDING
 
 # leaf path under <zaznam> -> column name
 CONTRACT_FIELDS = {
@@ -41,6 +39,7 @@ CONTRACT_FIELDS = {
     "smlouva/subjekt/adresa": "buyer_address",
     "smlouva/subjekt/platce": "buyer_is_payer",
 }
+# leaf under <smluvniStrana> -> column name
 PARTY_FIELDS = {
     "ico": "party_ico",
     "nazev": "party_name",
@@ -49,58 +48,79 @@ PARTY_FIELDS = {
     "prijemce": "party_is_recipient",
     "datovaSchranka": "party_data_box",
 }
+CONTRACT_COLUMNS = [*CONTRACT_FIELDS.values(), "source_file"]
+PARTY_COLUMNS = ["version_id", "party_seq", *PARTY_FIELDS.values(), "source_file"]
 
 
-def local(el) -> str:
-    return etree.QName(el).localname
+def local_name(element) -> str:
+    """Tag without its XML namespace: '{http://...}zaznam' -> 'zaznam'."""
+    return etree.QName(element).localname
 
 
-def text_at(record, path: str):
-    node = record
+def children(element, name: str):
+    return [child for child in element if local_name(child) == name]
+
+
+def text_at(element, path: str):
+    """Stripped text of the first element at a 'a/b/c' path, or None when missing or empty."""
     for part in path.split("/"):
-        node = next((c for c in node if local(c) == part), None)
-        if node is None:
+        matches = children(element, part)
+        if not matches:
             return None
-    value = (node.text or "").strip()
-    return value or None
+        element = matches[0]
+    return (element.text or "").strip() or None
 
 
-def parse(path: Path, contracts: list, parties: list):
-    for _, rec in etree.iterparse(str(path), events=("end",), tag="{*}zaznam"):
-        row = {col: text_at(rec, p) for p, col in CONTRACT_FIELDS.items()}
-        row["source_file"] = path.name
-        contracts.append(row)
-        smlouva = next((c for c in rec if local(c) == "smlouva"), None)
-        for i, party in enumerate(c for c in (smlouva if smlouva is not None else []) if local(c) == "smluvniStrana"):
-            p = {col: text_at(party, f) for f, col in PARTY_FIELDS.items()}
-            p.update(version_id=row["version_id"], party_seq=str(i + 1), source_file=path.name)
-            parties.append(p)
-        rec.clear()  # free the parsed record and its finished siblings
-        while rec.getprevious() is not None:
-            del rec.getparent()[0]
+def iter_records(dump: Path):
+    """Yield each <zaznam> element, freeing it afterwards so a 130 MB dump never sits in memory."""
+    for _, record in etree.iterparse(str(dump), events=("end",), tag="{*}zaznam"):
+        yield record
+        record.clear()
+        while record.getprevious() is not None:
+            del record.getparent()[0]
 
 
-def write(rows: list, columns: list, name: str):
-    table = pa.table({c: pa.array([r.get(c) for r in rows], pa.string()) for c in columns})
-    pq.write_table(table, OUT / name)
-    print(f"{name}: {table.num_rows:,} rows")
+def to_rows(record, source_file: str):
+    """One contract row and its party rows for a single <zaznam>."""
+    contract = {column: text_at(record, path) for path, column in CONTRACT_FIELDS.items()}
+    contract["source_file"] = source_file
+
+    contract_body = children(record, "smlouva")
+    party_elements = children(contract_body[0], "smluvniStrana") if contract_body else []
+    parties = [
+        {column: text_at(party, field) for field, column in PARTY_FIELDS.items()}
+        | {"version_id": contract["version_id"], "party_seq": str(seq), "source_file": source_file}
+        for seq, party in enumerate(party_elements, start=1)
+    ]
+    return contract, parties
+
+
+def write_table(rows: list, columns: list, target: Path):
+    table = pa.table({column: pa.array([row.get(column) for row in rows], pa.string()) for column in columns})
+    pq.write_table(table, target)
+    print(f"{target.name}: {table.num_rows:,} rows")
 
 
 def main():
-    global OUT
-    raw = Path(sys.argv[1]) if len(sys.argv) > 1 else RAW   # optional: another dump folder (CI sample)
-    OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else OUT
-    files = sorted(raw.glob("dump_*.xml"))
-    if not files:
-        sys.exit(f"no dumps in {raw}; run ingest/download_contracts.py first")
-    OUT.mkdir(parents=True, exist_ok=True)
+    dump_folder = Path(sys.argv[1]) if len(sys.argv) > 1 else RAW_CONTRACTS   # another folder: CI sample
+    output_folder = Path(sys.argv[2]) if len(sys.argv) > 2 else LANDING
+
+    dumps = sorted(dump_folder.glob("dump_*.xml"))
+    if not dumps:
+        sys.exit(f"no dumps in {dump_folder}; run ingest/download_contracts.py first")
+    output_folder.mkdir(parents=True, exist_ok=True)
+
     contracts, parties = [], []
-    for f in files:
-        before = len(contracts)
-        parse(f, contracts, parties)
-        print(f"{f.name}: {len(contracts) - before:,} records")
-    write(contracts, list(CONTRACT_FIELDS.values()) + ["source_file"], "contracts.parquet")
-    write(parties, ["version_id", "party_seq"] + list(PARTY_FIELDS.values()) + ["source_file"], "contract_parties.parquet")
+    for dump in dumps:
+        records_before = len(contracts)
+        for record in iter_records(dump):
+            contract, contract_parties = to_rows(record, dump.name)
+            contracts.append(contract)
+            parties.extend(contract_parties)
+        print(f"{dump.name}: {len(contracts) - records_before:,} records")
+
+    write_table(contracts, CONTRACT_COLUMNS, output_folder / "contracts.parquet")
+    write_table(parties, PARTY_COLUMNS, output_folder / "contract_parties.parquet")
 
 
 if __name__ == "__main__":

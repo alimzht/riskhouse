@@ -1,14 +1,14 @@
 """Look up every contract counterparty in ARES (the Czech business register) and land the answers.
 
-    python ingest/fetch_ares.py
+    python ingest/lookup_ares.py
 
 Reads the IČO (company ID) of every party in data/landing/contract_parties.parquet, asks the ARES REST API
-100 at a time, and keeps each answer as raw JSON in data/landing/ares_raw.jsonl. An IČO ARES does not
-know is recorded too ('found': false), because "not in the register" is itself a finding (rule R4).
-Re-running only asks for IČOs not seen before, so a dropped connection costs nothing.
+in batches, and keeps each answer as raw JSON in data/landing/ares_raw.jsonl. An IČO ARES does not know is
+recorded too ('found': false), because "not in the register" is itself a finding (rule R4).
+Re-running only asks for IČOs not landed before, so a dropped connection costs nothing.
 
 IČOs are padded to 8 digits for the request ('6947' -> '00006947'); dbt applies the same normalisation
-when it joins, see models/procurement/silver.
+when it joins (models/procurement/silver/stg_contract_parties.sql).
 """
 import json
 import re
@@ -23,47 +23,62 @@ from paths import LANDING
 PARTIES = LANDING / "contract_parties.parquet"
 OUT = LANDING / "ares_raw.jsonl"
 URL = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/vyhledat"
-BATCH = 100
+
+BATCH_SIZE = 100               # the most IČOs ARES accepts in one search
+PAUSE_SECONDS = 0.3            # between batches: be polite to a public service
+RETRY_ATTEMPTS = 5             # back-off grows 5 s, 10 s, 15 s ...
+PROGRESS_EVERY_BATCHES = 20    # one progress line per 2 000 IČOs
 
 
-def normalise(ico):
+def normalise_ico(ico):
+    """8-digit IČO, or None when the value cannot be one ('CZ27082440', too long, empty)."""
     digits = re.sub(r"\s", "", ico or "")
     return digits.zfill(8) if digits.isdigit() and len(digits) <= 8 else None
 
 
-def ask(icos, attempts=5):
-    for attempt in range(1, attempts + 1):
+def wanted_icos() -> set:
+    published = pq.read_table(PARTIES, columns=["party_ico"]).column(0).to_pylist()
+    return {normalise_ico(ico) for ico in published} - {None}
+
+
+def landed_icos() -> set:
+    if not OUT.exists():
+        return set()
+    return {json.loads(line)["ico"] for line in OUT.read_text(encoding="utf-8").splitlines()}
+
+
+def lookup_batch(icos: list) -> dict:
+    """ARES answers for a batch, keyed by IČO. IČOs ARES does not know are simply absent."""
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
         try:
-            r = requests.post(URL, json={"ico": icos, "pocet": BATCH, "start": 0}, timeout=60)
-            if r.status_code == 404:          # none of the batch exists
-                return []
-            r.raise_for_status()
-            return r.json().get("ekonomickeSubjekty", [])
-        except requests.RequestException as e:
-            print(f"  attempt {attempt} failed ({e})")
+            response = requests.post(URL, json={"ico": icos, "pocet": BATCH_SIZE, "start": 0}, timeout=60)
+            if response.status_code == 404:          # none of the batch exists
+                return {}
+            response.raise_for_status()
+            return {subject["ico"]: subject for subject in response.json().get("ekonomickeSubjekty", [])}
+        except requests.RequestException as error:
+            print(f"  attempt {attempt} failed ({error})")
             time.sleep(5 * attempt)
     raise SystemExit("ARES not reachable")
 
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")  # Czech characters on a Windows console
-    wanted = {normalise(i) for i in pq.read_table(PARTIES, columns=["party_ico"]).column(0).to_pylist()} - {None}
-    seen = set()
-    if OUT.exists():
-        seen = {json.loads(line)["ico"] for line in OUT.read_text(encoding="utf-8").splitlines()}
-    todo = sorted(wanted - seen)
-    print(f"{len(wanted):,} distinct IČOs, {len(seen):,} already landed, {len(todo):,} to ask")
-    with open(OUT, "a", encoding="utf-8") as f:
-        for i in range(0, len(todo), BATCH):
-            batch = todo[i:i + BATCH]
-            found = {s["ico"]: s for s in ask(batch)}
+    wanted, landed = wanted_icos(), landed_icos()
+    todo = sorted(wanted - landed)
+    print(f"{len(wanted):,} distinct IČOs, {len(landed):,} already landed, {len(todo):,} to ask")
+
+    with open(OUT, "a", encoding="utf-8") as out:
+        for batch_no, start in enumerate(range(0, len(todo), BATCH_SIZE)):
+            batch = todo[start:start + BATCH_SIZE]
+            answers = lookup_batch(batch)
             fetched_at = time.strftime("%Y-%m-%dT%H:%M:%S")
             for ico in batch:
-                f.write(json.dumps({"ico": ico, "found": ico in found, "fetched_at": fetched_at,
-                                    "subject": found.get(ico)}, ensure_ascii=False) + "\n")
-            if (i // BATCH) % 20 == 0:
-                print(f"  {i + len(batch):,}/{len(todo):,}")
-            time.sleep(0.3)  # be polite to a public service
+                line = {"ico": ico, "found": ico in answers, "fetched_at": fetched_at, "subject": answers.get(ico)}
+                out.write(json.dumps(line, ensure_ascii=False) + "\n")
+            if batch_no % PROGRESS_EVERY_BATCHES == 0:
+                print(f"  {start + len(batch):,}/{len(todo):,}")
+            time.sleep(PAUSE_SECONDS)
     print("done")
 
 

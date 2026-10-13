@@ -14,12 +14,12 @@ FIXTURES = ROOT / "tests" / "fixtures" / "contracts"
 
 
 def test_ico_normalisation():
-    assert lookup_ares.normalise("27082440") == "27082440"
-    assert lookup_ares.normalise("6947") == "00006947"       # published without leading zeros
-    assert lookup_ares.normalise(" 2708 2440 ") == "27082440"
-    assert lookup_ares.normalise("CZ27082440") is None       # VAT number, not an IČO
-    assert lookup_ares.normalise("123456789") is None        # too long
-    assert lookup_ares.normalise(None) is None
+    assert lookup_ares.normalise_ico("27082440") == "27082440"
+    assert lookup_ares.normalise_ico("6947") == "00006947"       # published without leading zeros
+    assert lookup_ares.normalise_ico(" 2708 2440 ") == "27082440"
+    assert lookup_ares.normalise_ico("CZ27082440") is None       # VAT number, not an IČO
+    assert lookup_ares.normalise_ico("123456789") is None        # too long
+    assert lookup_ares.normalise_ico(None) is None
 
 
 def test_parse_contracts(tmp_path, monkeypatch):

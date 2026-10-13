@@ -10,6 +10,7 @@ test-paths: ["tests"]
 
 vars:
   landing_path: "data/landing"
+  vat_rate: 0.21                 # standard Czech VAT, used when a contract states its value incl. VAT only
 
   # Procurement screening thresholds. Business rules, owned by the reviewing team, versioned here.
   # Czech public procurement act (zákon 134/2016 Sb.): above these values (excl. VAT) a public tender is required.

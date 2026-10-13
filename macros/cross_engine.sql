@@ -29,12 +29,12 @@
 {% macro default__month_start(d) -%} date_trunc('month', {{ d }}) {%- endmacro %}
 {% macro spark__month_start(d) -%} trunc({{ d }}, 'MM') {%- endmacro %}
 
-{# Full-string regex match #}
-{% macro regex_full_match(col, pattern) -%}
-    {{ return(adapter.dispatch('regex_full_match')(col, pattern)) }}
+{# True when the text contains a match for the pattern (anchor with ^...$ for a whole-value match) #}
+{% macro regex_contains(col, pattern) -%}
+    {{ return(adapter.dispatch('regex_contains')(col, pattern)) }}
 {%- endmacro %}
-{% macro default__regex_full_match(col, pattern) -%} regexp_matches({{ col }}, '{{ pattern }}') {%- endmacro %}
-{% macro spark__regex_full_match(col, pattern) -%} ({{ col }} rlike '{{ pattern }}') {%- endmacro %}
+{% macro default__regex_contains(col, pattern) -%} regexp_matches({{ col }}, '{{ pattern }}') {%- endmacro %}
+{% macro spark__regex_contains(col, pattern) -%} ({{ col }} rlike '{{ pattern }}') {%- endmacro %}
 
 {# Remove Czech/Slovak diacritics: 'Dvořák' -> 'Dvorak' #}
 {% macro strip_accents(col) -%}

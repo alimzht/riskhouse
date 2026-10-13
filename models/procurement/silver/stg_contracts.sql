@@ -1,5 +1,10 @@
 -- One row per contract: its latest published version, typed, value in CZK excl. VAT, type classified.
 -- Rules T-V01..T-V06, see docs/transformation_rules.md.
+
+{#- T-V05 construction work is recognised from the free-text subject (the register has no type field) -#}
+{%- set is_construction = regex_contains(strip_accents('lower(subject)'),
+        'stavb|staveb|rekonstrukc|vystavb|zateplen|demolic|sanac|stavebni prace') %}
+
 with versions as (
     select
         *,
@@ -57,7 +62,7 @@ valued as (
         -- T-V03 value in CZK excl. VAT: stated excl. VAT > incl. VAT / 1.21 (estimated) > foreign currency at ČNB rate
         case
             when t.value_excl_vat is not null then t.value_excl_vat
-            when t.value_incl_vat is not null then round(t.value_incl_vat / 1.21, 2)
+            when t.value_incl_vat is not null then round(t.value_incl_vat / (1 + {{ var('vat_rate') }}), 2)
             when t.foreign_value  is not null then round(t.foreign_value * fx.czk_per_unit, 2)
         end as value_czk,
         case
@@ -72,12 +77,8 @@ valued as (
 )
 select
     *,
-    -- T-V05 contract type from the free-text subject: construction work has a higher tender limit
-    case when {{ regex_full_match(strip_accents('lower(subject)'),
-                 'stavb|staveb|rekonstrukc|vystavb|zateplen|demolic|sanac|stavebni prace') }}
-         then 'construction' else 'supplies_services' end                              as contract_type,
-    case when {{ regex_full_match(strip_accents('lower(subject)'),
-                 'stavb|staveb|rekonstrukc|vystavb|zateplen|demolic|sanac|stavebni prace') }}
-         then {{ var('tender_limit_construction') }}
+    -- T-V05 construction work has a higher tender limit than supplies and services
+    case when {{ is_construction }} then 'construction' else 'supplies_services' end    as contract_type,
+    case when {{ is_construction }} then {{ var('tender_limit_construction') }}
          else {{ var('tender_limit_supplies_services') }} end                          as tender_limit_czk
 from valued
